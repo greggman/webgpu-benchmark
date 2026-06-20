@@ -68,8 +68,10 @@ export function renameRun(key: string, label: string): void {
 export interface HistoryHandlers {
   // Reload a run into the results panel.
   onSelect: (rec: RunRecord) => void;
-  // Add a run to the comparison panel.
+  // Toggle a run in/out of the comparison panel.
   onCompare: (rec: RunRecord) => void;
+  // Whether a run is currently in the comparison (controls the ⇄ button state).
+  isInComparison: (rec: RunRecord) => boolean;
   // Download a run as JSON.
   onDownload: (rec: RunRecord) => void;
 }
@@ -108,7 +110,7 @@ function historyRow(
   rerender: () => void,
   handlers: HistoryHandlers,
 ): HTMLLIElement {
-  const {onSelect, onCompare, onDownload} = handlers;
+  const {onSelect, onCompare, onDownload, isInComparison} = handlers;
   const li = document.createElement('li');
   const when = new Date(record.meta.timestamp).toLocaleString();
 
@@ -125,9 +127,10 @@ function historyRow(
   download.addEventListener('click', () => onDownload(record));
 
   const compare = document.createElement('button');
-  compare.className = 'secondary';
+  const inComparison = isInComparison(record);
+  compare.className = inComparison ? 'secondary active' : 'secondary';
   compare.textContent = '⇄';
-  compare.title = 'Add to comparison';
+  compare.title = inComparison ? 'Remove from comparison' : 'Add to comparison';
   compare.addEventListener('click', () => onCompare(record));
 
   const edit = document.createElement('button');

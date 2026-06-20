@@ -254,6 +254,57 @@ test('runs can be added to the comparison from history', async () => {
   );
 });
 
+test('clicking ⇄ again removes the run from the comparison', async () => {
+  await page.evaluate(() => {
+    const record = {
+      meta: {
+        label: 'Solo',
+        timestamp: '2022-02-02T02:02:02.000Z',
+        userAgent: 't',
+        adapter: {vendor: '', architecture: '', device: '', description: ''},
+      },
+      results: [],
+      overall: 50,
+    };
+    localStorage.setItem(
+      'webgpu-benchmark:runs',
+      JSON.stringify([{key: `${record.meta.timestamp} Solo`, record}]),
+    );
+  });
+  await page.reload({waitUntil: 'load'});
+  await page.waitForFunction('window.__ready === true', {timeout: 20000});
+
+  // Browser-side predicates (safe to pass to evaluate AND waitForFunction).
+  const clickCompare = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll('button')]
+        .find(b => b.textContent === '⇄')
+        .click(),
+    );
+  const clearPresent = () =>
+    [...document.querySelectorAll('button')].some(
+      b => b.textContent === 'Clear comparison',
+    );
+
+  await clickCompare(); // add
+  await page.waitForFunction(clearPresent, {timeout: 5000});
+  assert.equal(await page.evaluate(clearPresent), true, 'added to comparison');
+
+  await clickCompare(); // toggle back out
+  await page.waitForFunction(
+    () =>
+      ![...document.querySelectorAll('button')].some(
+        b => b.textContent === 'Clear comparison',
+      ),
+    {timeout: 5000},
+  );
+  assert.equal(
+    await page.evaluate(clearPresent),
+    false,
+    'removed from comparison',
+  );
+});
+
 test('a run can be downloaded from history', async () => {
   await page.evaluate(() => {
     const ts = '2023-03-03T03:03:03.000Z';

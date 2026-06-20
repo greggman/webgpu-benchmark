@@ -87,6 +87,7 @@ button {
 }
 button:disabled { opacity: 0.5; cursor: default; }
 button.secondary { background: var(--panel); color: var(--fg); border: 1px solid var(--border); }
+button.secondary.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 
 .toolbar { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
 input[type="text"] {

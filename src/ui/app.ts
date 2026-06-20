@@ -90,7 +90,8 @@ export function createApp(root: HTMLElement, deps: AppDeps): void {
         renderResults(resultsEl, rec);
         saveBtn.disabled = false;
       },
-      onCompare: rec => compare.add(rec),
+      onCompare: rec => compare.toggle(rec),
+      isInComparison: rec => compare.has(rec),
       onDownload: rec => downloadJson(rec),
     });
   }
@@ -140,11 +141,11 @@ export function createApp(root: HTMLElement, deps: AppDeps): void {
   });
 
   // Dropping a JSON run into the compare panel also files it into History
-  // (deduped by timestamp) so it persists alongside local runs.
+  // (deduped by timestamp) so it persists alongside local runs. onChange keeps the
+  // History panel's ⇄ buttons in sync as the comparison set changes.
   const compare: CompareApi = mountCompare(compareEl, {
-    onImport: record => {
-      if (importRun(record)) refreshHistory();
-    },
+    onImport: record => importRun(record),
+    onChange: () => refreshHistory(),
   });
   refreshHistory();
 }

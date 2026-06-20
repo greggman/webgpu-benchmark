@@ -15,13 +15,23 @@ function isRunRecord(x: unknown): x is RunRecord {
 
 export interface CompareApi {
   add(record: RunRecord): void;
+  remove(record: RunRecord): void;
+  // Add the run if absent, remove it if present. Returns the new membership.
+  toggle(record: RunRecord): boolean;
+  has(record: RunRecord): boolean;
   clear(): void;
 }
 
 export interface CompareOptions {
   // Called for each valid run dropped in, so the host can persist it.
   onImport?: (record: RunRecord) => void;
+  // Called after the comparison set changes, so the host can resync UI (e.g. the
+  // History panel's add/remove buttons).
+  onChange?: () => void;
 }
+
+// Runs are identified by their (unique, millisecond) timestamp.
+const keyOf = (r: RunRecord): string => r.meta.timestamp;
 
 export function mountCompare(
   container: HTMLElement,
@@ -38,21 +48,51 @@ export function mountCompare(
   container.append(h, zone, tableWrap);
 
   const records: RunRecord[] = [];
+  const indexOf = (rec: RunRecord) =>
+    records.findIndex(x => keyOf(x) === keyOf(rec));
 
   const render = () => {
     if (records.length === 0) {
       tableWrap.replaceChildren();
       return;
     }
-    renderCompareTable(tableWrap, records, () => {
-      records.length = 0;
-      render();
-    });
+    renderCompareTable(tableWrap, records, {onClear: clear, onRemove: remove});
+  };
+  const changed = () => {
+    render();
+    opts.onChange?.();
   };
 
+  const has = (rec: RunRecord) => indexOf(rec) >= 0;
   const add = (rec: RunRecord) => {
+    if (indexOf(rec) < 0) {
+      records.push(rec);
+      changed();
+    }
+  };
+  const remove = (rec: RunRecord) => {
+    const i = indexOf(rec);
+    if (i >= 0) {
+      records.splice(i, 1);
+      changed();
+    }
+  };
+  const toggle = (rec: RunRecord): boolean => {
+    const i = indexOf(rec);
+    if (i >= 0) {
+      records.splice(i, 1);
+      changed();
+      return false;
+    }
     records.push(rec);
-    render();
+    changed();
+    return true;
+  };
+  const clear = () => {
+    if (records.length) {
+      records.length = 0;
+      changed();
+    }
   };
 
   zone.addEventListener('dragover', e => {
@@ -68,8 +108,9 @@ export function mountCompare(
       try {
         const parsed = JSON.parse(await file.text());
         if (isRunRecord(parsed)) {
-          add(parsed);
+          // Persist first so the History refresh (via onChange) shows it.
           opts.onImport?.(parsed);
+          add(parsed);
         } else {
           console.warn(`${file.name} is not a benchmark run`);
         }
@@ -79,13 +120,12 @@ export function mountCompare(
     }
   });
 
-  return {
-    add,
-    clear: () => {
-      records.length = 0;
-      render();
-    },
-  };
+  return {add, remove, toggle, has, clear};
+}
+
+interface CompareTableHandlers {
+  onClear: () => void;
+  onRemove: (record: RunRecord) => void;
 }
 
 function deltaCell(value: number, base: number): string {
@@ -100,14 +140,14 @@ function deltaCell(value: number, base: number): string {
 function renderCompareTable(
   wrap: HTMLElement,
   records: RunRecord[],
-  onClear: () => void,
+  handlers: CompareTableHandlers,
 ): void {
   wrap.replaceChildren();
 
   const clearBtn = document.createElement('button');
   clearBtn.className = 'secondary';
   clearBtn.textContent = 'Clear comparison';
-  clearBtn.addEventListener('click', onClear);
+  clearBtn.addEventListener('click', handlers.onClear);
   wrap.append(clearBtn);
 
   // Union of benchmark ids, preserving first-seen order.
@@ -126,13 +166,28 @@ function renderCompareTable(
   const maps = records.map(byId);
 
   const table = document.createElement('table');
-  const head = records
-    .map(
-      (rec, i) =>
-        `<th class="num">${rec.meta.label || `run ${i + 1}`}${i > 0 ? ' (Δ)' : ''}</th>`,
-    )
-    .join('');
-  table.innerHTML = `<thead><tr><th>Benchmark</th>${head}</tr></thead>`;
+
+  // Header built with DOM so each run column gets a ✕ to drop just that run.
+  const thead = document.createElement('thead');
+  const htr = document.createElement('tr');
+  const corner = document.createElement('th');
+  corner.textContent = 'Benchmark';
+  htr.append(corner);
+  records.forEach((rec, i) => {
+    const th = document.createElement('th');
+    th.className = 'num';
+    const label = document.createElement('span');
+    label.textContent = `${rec.meta.label || `run ${i + 1}`}${i > 0 ? ' (Δ)' : ''}`;
+    const x = document.createElement('button');
+    x.className = 'secondary';
+    x.textContent = '✕';
+    x.title = 'Remove from comparison';
+    x.addEventListener('click', () => handlers.onRemove(rec));
+    th.append(label, ' ', x);
+    htr.append(th);
+  });
+  thead.append(htr);
+  table.append(thead);
 
   const tbody = document.createElement('tbody');
   for (const id of order) {
