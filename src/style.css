@@ -1,14 +1,37 @@
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
+  /* Dark theme (default). */
   --bg: #0d1117;
   --panel: #161b22;
   --border: #30363d;
   --fg: #e6edf3;
   --muted: #8b949e;
   --accent: #58a6ff;
+  --accent-fg: #06131f;
   --good: #3fb950;
   --bad: #f85149;
+  --canvas-bg: #000;
+  --error-bg: #3d1418;
+  --error-fg: #ffb4ae;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+/* Light theme: follows the OS/browser preference. */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #ffffff;
+    --panel: #f6f8fa;
+    --border: #d0d7de;
+    --fg: #1f2328;
+    --muted: #636c76;
+    --accent: #0969da;
+    --accent-fg: #ffffff;
+    --good: #1a7f37;
+    --bad: #cf222e;
+    --canvas-bg: #d0d7de;
+    --error-bg: #ffebe9;
+    --error-fg: #82071e;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -30,16 +53,16 @@ canvas {
   max-width: 640px;
   aspect-ratio: 16 / 9;
   height: auto;
-  background: #000;
+  background: var(--canvas-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   display: block;
 }
 
 #unsupported {
-  background: #3d1418;
+  background: var(--error-bg);
   border: 1px solid var(--bad);
-  color: #ffb4ae;
+  color: var(--error-fg);
   padding: 1rem;
   border-radius: 8px;
   margin-bottom: 1rem;
@@ -54,7 +77,7 @@ canvas {
 
 button {
   background: var(--accent);
-  color: #06131f;
+  color: var(--accent-fg);
   border: none;
   padding: 0.55rem 1.1rem;
   font-size: 0.95rem;
