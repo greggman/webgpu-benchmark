@@ -14,3 +14,14 @@ export function geomean(values: number[]): number {
   const sumLn = positive.reduce((acc, v) => acc + Math.log(v), 0);
   return Math.exp(sumLn / positive.length);
 }
+
+// Coefficient of variation (sample stddev / mean) -- a unit-free measure of
+// run-to-run spread, reported as the noise of a benchmark's per-window rates.
+export function coefficientOfVariation(values: number[]): number {
+  if (values.length < 2) return 0;
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  if (mean === 0) return 0;
+  const variance =
+    values.reduce((a, b) => a + (b - mean) ** 2, 0) / (values.length - 1);
+  return Math.sqrt(variance) / mean;
+}

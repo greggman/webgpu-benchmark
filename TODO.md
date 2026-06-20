@@ -1,5 +1,13 @@
 # WebGPU Benchmark
 
+## new
+
+- [ ] add button to remove individual test from comparison
+
+
+
+## original
+
 This project is a benchmark for WebGPU. It takes inspiration from
 benchmarks like 3dMark and MotionMark.
 

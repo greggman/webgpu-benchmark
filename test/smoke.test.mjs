@@ -71,6 +71,10 @@ test('every benchmark runs and produces a finite positive score', async () => {
       Number.isFinite(r.cpuMsMedian) && r.cpuMsMedian >= 0,
       `${id}: cpuMsMedian finite & non-negative (got ${r.cpuMsMedian})`,
     );
+    assert.ok(
+      Number.isFinite(r.noiseCoV) && r.noiseCoV >= 0,
+      `${id}: noiseCoV finite & non-negative (got ${r.noiseCoV})`,
+    );
   }
 });
 

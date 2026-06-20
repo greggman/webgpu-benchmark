@@ -42,8 +42,12 @@ measure**:
 - **calibrate** picks a per-frame operation `count` sizing each submitted frame
   to a modest amount of work.
 - **measure** keeps the GPU pipe full — the standard *frames-in-flight* pattern
-  (up to 3 frames in flight, blocking only when that far ahead) — and reports the
-  operations/second sustained over a fixed wall-clock window.
+  (up to 3 frames in flight, blocking only when that far ahead) — across several
+  short windows, and reports the **median** window's operations/second. Splitting
+  into windows and taking the median makes the number robust to transient stalls
+  (GC, scheduler, memory-bandwidth contention); the first window is dropped as
+  extra settle time. Each result also reports **Noise** (±, the coefficient of
+  variation across the kept windows) so you can see how stable a number is.
 
 > **Why frames-in-flight and not "submit one frame, wait for it to finish"?**
 > Draining the queue every frame measures *start + stop* latency, not throughput:

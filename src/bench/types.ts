@@ -31,6 +31,8 @@ export interface BenchResult {
   cpuMsMedian: number;
   // Units of work per second sustained with the pipe kept full (the raw number).
   unitsPerSecond: number;
+  // Run-to-run noise: coefficient of variation of the per-window rates (0..1).
+  noiseCoV: number;
   score: number;
 }
 

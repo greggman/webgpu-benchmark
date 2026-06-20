@@ -13,7 +13,7 @@
 // honest driver/upload throughput for the copy/write ones.
 
 import type {Benchmark, BenchContext, BenchResult} from './types.js';
-import {median} from '../gpu/timing.js';
+import {median, coefficientOfVariation} from '../gpu/timing.js';
 import {scoreFor} from '../ui/score.js';
 
 // How many frames may be in flight at once during measurement. 2-3 is what real
@@ -25,7 +25,10 @@ const MAX_MEASURE_FRAMES = 200_000;
 export interface RunnerProfile {
   warmupFrames: number;
   calibrateTargetMs: number; // flushed frame time we size `count` against
-  measureMs: number; // wall-clock duration of the measurement window
+  // Measurement is split into several short windows; we take the median rate
+  // across them (robust to GC/scheduler stalls) and discard the first as settle.
+  measureWindows: number;
+  measureWindowMs: number;
   minCount: number;
   maxCount: number;
 }
@@ -33,16 +36,18 @@ export interface RunnerProfile {
 export const FULL_PROFILE: RunnerProfile = {
   warmupFrames: 10,
   calibrateTargetMs: 12,
-  measureMs: 1500,
+  measureWindows: 7, // median of 6 after dropping the first
+  measureWindowMs: 220,
   minCount: 16,
   maxCount: 1 << 18,
 };
 
-// A fast profile for automated tests: short window, small counts.
+// A fast profile for automated tests: fewer/shorter windows, small counts.
 export const QUICK_PROFILE: RunnerProfile = {
   warmupFrames: 3,
   calibrateTargetMs: 6,
-  measureMs: 150,
+  measureWindows: 4, // median of 3 after dropping the first
+  measureWindowMs: 50,
   minCount: 8,
   maxCount: 1 << 13,
 };
@@ -61,6 +66,42 @@ const nextFrame = (): Promise<number> =>
   typeof requestAnimationFrame === 'function'
     ? new Promise(r => requestAnimationFrame(t => r(t)))
     : new Promise(r => setTimeout(() => r(performance.now()), 0));
+
+interface WindowResult {
+  rate: number; // units/second over this window
+  frames: number;
+  encode: number[]; // per-frame CPU encode+submit times
+}
+
+// Measure one window: keep up to IN_FLIGHT frames in flight (real backpressure)
+// for `windowMs`, then drain. No per-frame drain and no rAF cap, so we measure
+// sustained throughput, not start/stop latency.
+async function measureWindow(
+  bench: Benchmark,
+  count: number,
+  device: GPUDevice,
+  windowMs: number,
+): Promise<WindowResult> {
+  const encode: number[] = [];
+  const inFlight: Array<Promise<unknown>> = [];
+  let frames = 0;
+  const tStart = performance.now();
+  const deadline = tStart + windowMs;
+  do {
+    if (inFlight.length >= IN_FLIGHT) {
+      await inFlight.shift();
+    }
+    const e0 = performance.now();
+    await bench.runFrame(count);
+    encode.push(performance.now() - e0);
+    inFlight.push(device.queue.onSubmittedWorkDone());
+    frames++;
+  } while (performance.now() < deadline && frames < MAX_MEASURE_FRAMES);
+  await Promise.all(inFlight);
+  const wallMs = performance.now() - tStart;
+  const rate = wallMs > 0 ? (count * frames * 1000) / wallMs : 0;
+  return {rate, frames, encode};
+}
 
 // Run one frame and wait for the GPU to finish it, returning the full wall time
 // (encode + submit + GPU completion). Used during calibration so that benchmarks
@@ -134,32 +175,30 @@ async function runOne(
   await ctx.device.queue.onSubmittedWorkDone();
 
   report('measure');
-  // Keep up to IN_FLIGHT frames in flight: encode + submit without waiting, and
-  // only block when we are that many frames ahead (backpressure). No per-frame
-  // drain and no rAF vsync cap, so we measure sustained throughput, not the cost
-  // of starting and stopping from an idle GPU each frame.
-  const encodeSamples: number[] = []; // per-frame CPU encode+submit time
-  const inFlight: Array<Promise<unknown>> = [];
+  // Measure several short windows and take the median rate. A transient stall
+  // (GC, scheduler, memory-bandwidth contention) mostly slows a single window, so
+  // the median across windows is far more reproducible than one long window. The
+  // first window is dropped as extra settle time.
+  const rates: number[] = [];
+  const encodeSamples: number[] = [];
   let frames = 0;
-  const tStart = performance.now();
-  const deadline = tStart + profile.measureMs;
-  do {
-    if (inFlight.length >= IN_FLIGHT) {
-      await inFlight.shift(); // wait for the oldest frame's GPU work to finish
-    }
-    const e0 = performance.now();
-    await bench.runFrame(count);
-    encodeSamples.push(performance.now() - e0);
-    inFlight.push(ctx.device.queue.onSubmittedWorkDone());
-    frames++;
-  } while (performance.now() < deadline && frames < MAX_MEASURE_FRAMES);
-  // Drain the last few in-flight frames so the window includes their completion.
-  await Promise.all(inFlight);
-  const wallMs = performance.now() - tStart;
-
+  for (let w = 0; w < profile.measureWindows; w++) {
+    const win = await measureWindow(
+      bench,
+      count,
+      ctx.device,
+      profile.measureWindowMs,
+    );
+    rates.push(win.rate);
+    encodeSamples.push(...win.encode);
+    frames += win.frames;
+    await ctx.device.queue.onSubmittedWorkDone(); // isolate windows from each other
+  }
+  const stableRates = rates.length > 1 ? rates.slice(1) : rates;
+  const unitsPerSecond = median(stableRates);
+  // Run-to-run noise as the spread of the kept windows' rates.
+  const noiseCoV = coefficientOfVariation(stableRates);
   const cpuMsMedian = median(encodeSamples);
-  // Sustained units/second over the full window with the pipe kept full.
-  const unitsPerSecond = wallMs > 0 ? (count * frames * 1000) / wallMs : 0;
 
   const err = await ctx.device.popErrorScope();
   if (err) console.warn(`[${bench.id}] validation error:`, err.message);
@@ -175,6 +214,7 @@ async function runOne(
     frames,
     cpuMsMedian,
     unitsPerSecond,
+    noiseCoV,
     score: scoreFor(bench.id, unitsPerSecond),
   };
 }

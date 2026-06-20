@@ -28,8 +28,13 @@ try {
   const record = await page.evaluate('window.__runFull()');
 
   const unitsPerSecond = {};
+  const summary = {};
   for (const r of record.results) {
     unitsPerSecond[r.id] = Math.round(r.unitsPerSecond);
+    summary[r.id] = {
+      'units/s': Math.round(r.unitsPerSecond),
+      noise: `±${(r.noiseCoV * 100).toFixed(1)}%`,
+    };
   }
   const baseline = {
     generatedAt: record.meta.timestamp,
@@ -40,7 +45,7 @@ try {
 
   await writeFile(outFile, JSON.stringify(baseline, null, 2) + '\n');
   console.log(`\nWrote ${path.relative(process.cwd(), outFile)}:`);
-  console.table(unitsPerSecond);
+  console.table(summary);
   console.log('Rebuild (npm run build) to bundle the new baseline.');
 } finally {
   await browser.close();
