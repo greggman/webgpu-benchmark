@@ -16,7 +16,10 @@ const pageErrors = [];
 before(async () => {
   await runBuild();
   ({ server, url } = await serve());
-  browser = await puppeteer.launch({ headless: true });
+  browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox'],
+  });
   page = await browser.newPage();
   page.on('pageerror', (e) => pageErrors.push(e.message));
   // Surface console errors, but ignore the harmless favicon 404.
@@ -50,12 +53,9 @@ test('every benchmark runs and produces a finite positive score', async () => {
     assert.ok(r.count >= 1, `${id}: calibrated a count`);
     assert.ok(r.frames >= 1, `${id}: ran at least one frame`);
     assert.ok(
-      Number.isFinite(r.cpuBusyFraction) &&
-        r.cpuBusyFraction >= 0 &&
-        r.cpuBusyFraction <= 1,
-      `${id}: cpuBusyFraction in [0,1] (got ${r.cpuBusyFraction})`,
+      Number.isFinite(r.cpuMsMedian) && r.cpuMsMedian >= 0,
+      `${id}: cpuMsMedian finite & non-negative (got ${r.cpuMsMedian})`,
     );
-    assert.equal(typeof r.gpuBound, 'boolean', `${id}: gpuBound is a boolean`);
   }
 });
 

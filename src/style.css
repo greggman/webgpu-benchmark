@@ -100,7 +100,6 @@ th { color: var(--muted); font-weight: 600; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .overall { font-size: 1.2rem; font-weight: 700; color: var(--good); }
 .status { color: var(--muted); margin: 0.5rem 0; min-height: 1.2em; }
-.flag { color: var(--bad); font-size: 0.8rem; }
 
 .dropzone {
   border: 2px dashed var(--border);

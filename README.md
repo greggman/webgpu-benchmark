@@ -50,10 +50,7 @@ measure**:
 > it runs each frame from an idle GPU and never lets the implementation pipeline
 > submissions the way a real engine does. It would also penalize an implementation
 > that is fast under constant load but has higher per-submit latency. Keeping the
-> pipe full measures sustained run speed. Each result also reports **CPU busy %**
-> (how much of the window the CPU spent encoding vs. blocked on backpressure); a
-> low value trips the **GPU-bound** flag, meaning the GPU/driver — not WebGPU's
-> call path — was the bottleneck.
+> pipe full measures sustained run speed.
 
 Each benchmark's operations/second is normalized against a baked-in reference
 baseline (`src/ui/score.ts`) so a score near **1000 matches the reference machine
@@ -96,7 +93,5 @@ You can also **drag & drop** exported JSON files into the *Compare runs* panel
 ## Notes
 
 - Requires a browser with WebGPU (`navigator.gpu`).
-- `timestamp-query` is requested when available; the runner degrades gracefully
-  without it.
 - The scoring baseline lives in `src/ui/baseline.json`; regenerate it with
   `npm run baseline` (see *Scoring baseline* above).

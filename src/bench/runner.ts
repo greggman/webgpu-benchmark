@@ -160,12 +160,6 @@ async function runOne(
   const cpuMsMedian = median(encodeSamples);
   // Sustained units/second over the full window with the pipe kept full.
   const unitsPerSecond = wallMs > 0 ? (count * frames * 1000) / wallMs : 0;
-  // Fraction of the window the CPU spent encoding rather than blocked on the
-  // pipe. If the CPU is mostly idle, the GPU/driver -- not WebGPU's call path --
-  // is the bottleneck, so the result is GPU-bound.
-  const encodeTotalMs = encodeSamples.reduce((a, b) => a + b, 0);
-  const cpuBusyFraction = wallMs > 0 ? Math.min(1, encodeTotalMs / wallMs) : 0;
-  const gpuBound = cpuBusyFraction < 0.5;
 
   const err = await ctx.device.popErrorScope();
   if (err) console.warn(`[${bench.id}] validation error:`, err.message);
@@ -180,9 +174,7 @@ async function runOne(
     count,
     frames,
     cpuMsMedian,
-    cpuBusyFraction,
     unitsPerSecond,
-    gpuBound,
     score: scoreFor(bench.id, unitsPerSecond),
   };
 }

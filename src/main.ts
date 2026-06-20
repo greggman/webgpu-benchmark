@@ -38,7 +38,6 @@ async function main() {
     canvas: gpu.canvas,
     context: gpu.context,
     format: gpu.format,
-    hasTimestamp: gpu.hasTimestamp,
   };
   const adapter = {
     vendor: gpu.adapterInfo.vendor,
