@@ -4,8 +4,8 @@
 import type {Benchmark, BenchContext} from '../types.js';
 import {encodeAnimatedClear, nowSeconds} from './shared.js';
 
-const IMG = 512; // source image size
-const DST = 1024; // destination texture size (copies tile into it)
+const IMG_SIZE = 512; // source image size
+const DST_SIZE = 1024; // destination texture size (copies tile into it)
 
 export const copyExternalImageBench: Benchmark = createBench();
 
@@ -13,7 +13,7 @@ function createBench(): Benchmark {
   let ctx: BenchContext;
   let bitmap: ImageBitmap;
   let dst: GPUTexture;
-  const tiles = Math.floor(DST / IMG); // copies wrap across this grid
+  const tiles = Math.floor(DST_SIZE / IMG_SIZE); // copies wrap across this grid
 
   return {
     id: 'copyExternalImage',
@@ -25,17 +25,17 @@ function createBench(): Benchmark {
     async init(c) {
       ctx = c;
       // Build a small colorful source image once.
-      const off = new OffscreenCanvas(IMG, IMG);
+      const off = new OffscreenCanvas(IMG_SIZE, IMG_SIZE);
       const g = off.getContext('2d')!;
-      const grad = g.createLinearGradient(0, 0, IMG, IMG);
+      const grad = g.createLinearGradient(0, 0, IMG_SIZE, IMG_SIZE);
       grad.addColorStop(0, '#58a6ff');
       grad.addColorStop(1, '#f85149');
       g.fillStyle = grad;
-      g.fillRect(0, 0, IMG, IMG);
+      g.fillRect(0, 0, IMG_SIZE, IMG_SIZE);
       bitmap = await createImageBitmap(off);
 
       dst = c.device.createTexture({
-        size: [DST, DST],
+        size: [DST_SIZE, DST_SIZE],
         format: 'rgba8unorm',
         usage:
           GPUTextureUsage.COPY_DST |
@@ -51,12 +51,12 @@ function createBench(): Benchmark {
       ctx.device.queue.submit([enc.finish()]);
 
       for (let i = 0; i < count; i++) {
-        const tx = (i % tiles) * IMG;
-        const ty = (Math.floor(i / tiles) % tiles) * IMG;
+        const tx = (i % tiles) * IMG_SIZE;
+        const ty = (Math.floor(i / tiles) % tiles) * IMG_SIZE;
         ctx.device.queue.copyExternalImageToTexture(
           {source: bitmap},
           {texture: dst, origin: {x: tx, y: ty}},
-          {width: IMG, height: IMG},
+          {width: IMG_SIZE, height: IMG_SIZE},
         );
       }
     },
