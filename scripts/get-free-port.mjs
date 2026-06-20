@@ -29,7 +29,9 @@ function tryBind(port, host) {
 // IPv4-any, and IPv4-loopback.
 export async function getFreePort(port, hosts) {
   if (!hosts || !hosts.length) {
-    throw new Error('getFreePort: hosts is required, e.g. getFreePort.commonHosts');
+    throw new Error(
+      'getFreePort: hosts is required, e.g. getFreePort.commonHosts',
+    );
   }
   debug('getFreePort:', port, hosts);
   for (; port <= 65535; ++port) {

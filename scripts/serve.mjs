@@ -1,8 +1,8 @@
-import { createServer } from 'node:http';
-import { readFile, stat } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
+import {createServer} from 'node:http';
+import {readFile, stat} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
 import path from 'node:path';
-import { getFreePort, commonHosts } from './get-free-port.mjs';
+import {getFreePort, commonHosts} from './get-free-port.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(root, '..');
@@ -33,10 +33,13 @@ export function createStaticServer(dir = distDir) {
       const info = await stat(filePath).catch(() => null);
       if (info?.isDirectory()) filePath = path.join(filePath, 'index.html');
       const body = await readFile(filePath);
-      res.writeHead(200, { 'Content-Type': MIME[path.extname(filePath)] ?? 'application/octet-stream' });
+      res.writeHead(200, {
+        'Content-Type':
+          MIME[path.extname(filePath)] ?? 'application/octet-stream',
+      });
       res.end(body);
     } catch {
-      res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found');
+      res.writeHead(404, {'Content-Type': 'text/plain'}).end('Not found');
     }
   });
 }
@@ -44,12 +47,12 @@ export function createStaticServer(dir = distDir) {
 export async function serve(startPort = 8080) {
   const port = await getFreePort(startPort, commonHosts);
   const server = createStaticServer();
-  await new Promise((resolve) => server.listen(port, resolve));
+  await new Promise(resolve => server.listen(port, resolve));
   const url = `http://localhost:${port}/`;
-  return { server, port, url };
+  return {server, port, url};
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const { url } = await serve();
+  const {url} = await serve();
   console.log(`Serving dist/ at ${url}`);
 }

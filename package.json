@@ -9,8 +9,8 @@
     "dev": "node scripts/dev.mjs",
     "serve": "node scripts/serve.mjs",
     "typecheck": "tsc --noEmit",
-    "lint": "gts lint",
-    "fix": "gts fix",
+    "lint": "eslint .",
+    "fix": "eslint . --fix",
     "baseline": "node scripts/gen-baseline.mjs",
     "test": "node --test \"test/**/*.test.mjs\""
   },

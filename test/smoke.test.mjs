@@ -1,11 +1,11 @@
 // Puppeteer smoke test: build, serve, and run every benchmark a few frames each
 // (QUICK profile via window.__runQuick). Asserts each produces a finite positive
 // score and that the page raised no errors. Fast by design.
-import { test, before, after } from 'node:test';
+import {test, before, after} from 'node:test';
 import assert from 'node:assert/strict';
 import puppeteer from 'puppeteer';
-import { runBuild } from '../scripts/build.mjs';
-import { serve } from '../scripts/serve.mjs';
+import {runBuild} from '../scripts/build.mjs';
+import {serve} from '../scripts/serve.mjs';
 
 let server;
 let url;
@@ -15,19 +15,22 @@ const pageErrors = [];
 
 before(async () => {
   await runBuild();
-  ({ server, url } = await serve());
+  ({server, url} = await serve());
   browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox'],
   });
   page = await browser.newPage();
-  page.on('pageerror', (e) => pageErrors.push(e.message));
+  page.on('pageerror', e => pageErrors.push(e.message));
   // Surface console errors, but ignore the harmless favicon 404.
-  page.on('console', (m) => {
-    if (m.type() === 'error' && !m.text().includes('favicon')) pageErrors.push(`console: ${m.text()}`);
+  page.on('console', m => {
+    if (m.type() === 'error' && !m.text().includes('favicon'))
+      pageErrors.push(`console: ${m.text()}`);
   });
-  await page.goto(url, { waitUntil: 'load' });
-  await page.waitForFunction('typeof window.__runQuick === "function"', { timeout: 20000 });
+  await page.goto(url, {waitUntil: 'load'});
+  await page.waitForFunction('typeof window.__runQuick === "function"', {
+    timeout: 20000,
+  });
 });
 
 after(async () => {
@@ -36,8 +39,12 @@ after(async () => {
 });
 
 test('WebGPU is supported in the test browser', async () => {
-  const unsupported = await page.$eval('#unsupported', (el) => !el.hidden);
-  assert.equal(unsupported, false, 'WebGPU should be available (no flags needed)');
+  const unsupported = await page.$eval('#unsupported', el => !el.hidden);
+  assert.equal(
+    unsupported,
+    false,
+    'WebGPU should be available (no flags needed)',
+  );
 });
 
 test('every benchmark runs and produces a finite positive score', async () => {
@@ -45,11 +52,19 @@ test('every benchmark runs and produces a finite positive score', async () => {
   assert.ok(ids.length >= 10, `expected ~10+ benchmarks, got ${ids.length}`);
 
   for (const id of ids) {
-    const record = await page.evaluate(`window.__runQuick(${JSON.stringify([id])})`);
+    const record = await page.evaluate(
+      `window.__runQuick(${JSON.stringify([id])})`,
+    );
     const r = record.results[0];
     assert.ok(r, `${id}: produced a result`);
-    assert.ok(Number.isFinite(r.score) && r.score > 0, `${id}: score finite & positive (got ${r.score})`);
-    assert.ok(Number.isFinite(r.unitsPerSecond) && r.unitsPerSecond > 0, `${id}: throughput positive`);
+    assert.ok(
+      Number.isFinite(r.score) && r.score > 0,
+      `${id}: score finite & positive (got ${r.score})`,
+    );
+    assert.ok(
+      Number.isFinite(r.unitsPerSecond) && r.unitsPerSecond > 0,
+      `${id}: throughput positive`,
+    );
     assert.ok(r.count >= 1, `${id}: calibrated a count`);
     assert.ok(r.frames >= 1, `${id}: ran at least one frame`);
     assert.ok(
@@ -61,8 +76,14 @@ test('every benchmark runs and produces a finite positive score', async () => {
 
 test('an overall score is computed across all benchmarks', async () => {
   const record = await page.evaluate('window.__runQuick()');
-  assert.ok(Number.isFinite(record.overall) && record.overall > 0, 'overall finite & positive');
-  assert.equal(record.results.length, (await page.evaluate('window.__benchIds()')).length);
+  assert.ok(
+    Number.isFinite(record.overall) && record.overall > 0,
+    'overall finite & positive',
+  );
+  assert.equal(
+    record.results.length,
+    (await page.evaluate('window.__benchIds()')).length,
+  );
 });
 
 test('a saved run can be relabelled from history after the fact', async () => {
@@ -79,7 +100,10 @@ test('a saved run can be relabelled from history after the fact', async () => {
       overall: 1234,
     };
     const key = `${record.meta.timestamp} unlabeled`;
-    localStorage.setItem('webgpu-benchmark:runs', JSON.stringify([{key, record}]));
+    localStorage.setItem(
+      'webgpu-benchmark:runs',
+      JSON.stringify([{key, record}]),
+    );
   });
   await page.reload({waitUntil: 'load'});
   await page.waitForFunction('window.__ready === true', {timeout: 20000});
@@ -137,7 +161,11 @@ test('dropping a JSON run imports it into history and dedupes', async () => {
       );
       const zone = document.querySelector('.dropzone');
       zone.dispatchEvent(
-        new DragEvent('drop', {dataTransfer: dt, bubbles: true, cancelable: true}),
+        new DragEvent('drop', {
+          dataTransfer: dt,
+          bubbles: true,
+          cancelable: true,
+        }),
       );
     }, ts);
 
@@ -216,7 +244,8 @@ test('runs can be added to the comparison from history', async () => {
     els.map(e => e.textContent),
   );
   assert.ok(
-    headers.some(h => h.includes('Aaa')) && headers.some(h => h.includes('Bbb')),
+    headers.some(h => h.includes('Aaa')) &&
+      headers.some(h => h.includes('Bbb')),
     `comparison shows both runs (headers: ${headers.join(', ')})`,
   );
 });
