@@ -17,6 +17,9 @@ encoding passes — rather than the raw throughput of the GPU.
 | `writeBufferSmall` | many small `writeBuffer()` uploads |
 | `writeBufferBig` | many large (1 MB) `writeBuffer()` uploads |
 | `mapAsyncWrite` | big uploads via `mapAsync` + `copyBufferToBuffer` |
+| `mapAsyncRead` | big GPU→CPU readbacks via `mapAsync` |
+| `writeTextureSmall` | many small (4×4) `writeTexture()` calls |
+| `writeTextureBig` | many large (256×256) `writeTexture()` calls |
 | `draw` | many `draw()` calls |
 | `drawIndexed` | many `drawIndexed()` calls |
 | `drawIndirect` | many `drawIndirect()` calls |
@@ -24,6 +27,10 @@ encoding passes — rather than the raw throughput of the GPU.
 | `renderBundle` | replaying a medium render bundle many times |
 | `dispatch` | many `dispatchWorkgroups()` calls |
 | `interleavedPasses` | non-dependent interleaved render + compute passes |
+| `createBindGroup` | bind-group creation churn (a fresh one per draw) |
+| `setBindGroupDynamic` | rebinding one bind group with dynamic offsets |
+| `setPipelineSwitch` | round-robin `setPipeline()` state changes |
+| `renderPasses` | many `beginRenderPass()`/`end()` pairs |
 
 ## How it works
 

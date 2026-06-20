@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-20T19:16:52.237Z",
+  "generatedAt": "2026-06-20T19:31:41.012Z",
   "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36",
   "adapter": {
     "vendor": "apple",
@@ -8,16 +8,23 @@
     "description": ""
   },
   "unitsPerSecond": {
-    "copyExternalImage": 14548,
-    "writeBufferSmall": 2653916,
-    "writeBufferBig": 10701,
-    "mapAsyncWrite": 5743,
-    "draw": 12390909,
-    "drawIndexed": 11994909,
-    "drawIndirect": 7382640,
-    "drawIndexedIndirect": 7050240,
-    "renderBundle": 68833,
-    "dispatch": 498304,
-    "interleavedPasses": 15763
+    "copyExternalImage": 14365,
+    "writeBufferSmall": 2618692,
+    "writeBufferBig": 9880,
+    "mapAsyncWrite": 5885,
+    "mapAsyncRead": 2952,
+    "writeTextureSmall": 375420,
+    "writeTextureBig": 40227,
+    "draw": 12239615,
+    "drawIndexed": 11892089,
+    "drawIndirect": 7246034,
+    "drawIndexedIndirect": 7049432,
+    "renderBundle": 68816,
+    "dispatch": 447851,
+    "interleavedPasses": 15338,
+    "createBindGroup": 1195704,
+    "setBindGroupDynamic": 3666000,
+    "setPipelineSwitch": 4240019,
+    "renderPasses": 21867
   }
 }
