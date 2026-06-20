@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebGPU Benchmark</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>WebGPU Benchmark</h1>
+      <p class="tagline">Measures the WebGPU implementation, not the GPU.</p>
+    </header>
+    <main id="app">
+      <div id="unsupported" hidden>
+        WebGPU is not available in this browser.
+        <span id="unsupported-reason"></span>
+      </div>
+      <canvas id="view" width="640" height="360"></canvas>
+      <section id="panel"></section>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

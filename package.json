@@ -1,0 +1,20 @@
+{
+  "name": "webgpu-benchmark",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A benchmark for the WebGPU implementation (not the GPU itself).",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/dev.mjs",
+    "serve": "node scripts/serve.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"test/**/*.test.mjs\""
+  },
+  "devDependencies": {
+    "@webgpu/types": "^0.1.70",
+    "esbuild": "^0.28.1",
+    "puppeteer": "^25.1.0",
+    "typescript": "^6.0.3"
+  }
+}
