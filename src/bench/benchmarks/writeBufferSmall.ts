@@ -1,8 +1,8 @@
 // Benchmark: many small `writeBuffer()` calls. Each frame issues `count`
 // writeBuffer() calls of a tiny (16-byte) payload at varying offsets. Measures
 // the per-call overhead of the queue.writeBuffer upload path.
-import type { Benchmark, BenchContext } from '../types.js';
-import { encodeAnimatedClear, nowSeconds } from './shared.js';
+import type {Benchmark, BenchContext} from '../types.js';
+import {encodeAnimatedClear, nowSeconds} from './shared.js';
 
 const PAYLOAD = 16; // bytes per write
 const SLOTS = 1 << 14; // distinct offsets (256 KB buffer)

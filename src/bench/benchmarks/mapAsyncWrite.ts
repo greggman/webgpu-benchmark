@@ -1,8 +1,8 @@
 // Benchmark: big uploads via mapAsync. A ring of mappable upload buffers; each
 // unit maps a buffer, writes a 1 MB chunk, unmaps, and copies it into a device
 // buffer. Measures the map-based upload path. runFrame is async (awaits mapAsync).
-import type { Benchmark, BenchContext } from '../types.js';
-import { encodeAnimatedClear, nowSeconds } from './shared.js';
+import type {Benchmark, BenchContext} from '../types.js';
+import {encodeAnimatedClear, nowSeconds} from './shared.js';
 
 const CHUNK = 1 << 20; // 1 MB
 const RING = 3; // in-flight upload buffers
@@ -24,7 +24,7 @@ function createBench(): Benchmark {
     async init(c) {
       ctx = c;
       for (let i = 0; i < filler.length; i += 1021) filler[i] = i & 0xff;
-      ring = Array.from({ length: RING }, () =>
+      ring = Array.from({length: RING}, () =>
         c.device.createBuffer({
           size: CHUNK,
           usage: GPUBufferUsage.MAP_WRITE | GPUBufferUsage.COPY_SRC,

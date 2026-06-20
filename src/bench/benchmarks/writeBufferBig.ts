@@ -1,8 +1,8 @@
 // Benchmark: many big `writeBuffer()` calls. Each frame issues `count`
 // writeBuffer() calls of a large (1 MB) payload. Measures the bulk
 // staging/upload throughput of the queue.writeBuffer path.
-import type { Benchmark, BenchContext } from '../types.js';
-import { encodeAnimatedClear, nowSeconds } from './shared.js';
+import type {Benchmark, BenchContext} from '../types.js';
+import {encodeAnimatedClear, nowSeconds} from './shared.js';
 
 const CHUNK = 1 << 20; // 1 MB per write
 

@@ -1,5 +1,5 @@
 // Renders a run's results as a score table with an overall (geomean) score.
-import type { RunRecord, BenchResult } from '../bench/types.js';
+import type {RunRecord, BenchResult} from '../bench/types.js';
 
 function fmtInt(n: number): string {
   return Math.round(n).toLocaleString();
@@ -7,7 +7,9 @@ function fmtInt(n: number): string {
 
 function row(r: BenchResult): HTMLTableRowElement {
   const tr = document.createElement('tr');
-  const flag = r.gpuBound ? ' <span class="flag" title="GPU may be the bottleneck">⚠ GPU-bound</span>' : '';
+  const flag = r.gpuBound
+    ? ' <span class="flag" title="GPU may be the bottleneck">⚠ GPU-bound</span>'
+    : '';
   tr.innerHTML = `
     <td>${r.name}${flag}</td>
     <td class="num">${fmtInt(r.score)}</td>

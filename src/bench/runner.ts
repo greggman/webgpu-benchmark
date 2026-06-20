@@ -5,9 +5,9 @@
 // picks a per-frame `count` that targets a modest CPU encode time; measurement then
 // records how many units/second that sustains.
 
-import type { Benchmark, BenchContext, BenchResult } from './types.js';
-import { median } from '../gpu/timing.js';
-import { scoreFor } from '../ui/score.js';
+import type {Benchmark, BenchContext, BenchResult} from './types.js';
+import {median} from '../gpu/timing.js';
+import {scoreFor} from '../ui/score.js';
 
 export interface RunnerProfile {
   warmupFrames: number;
@@ -46,8 +46,8 @@ export type ProgressFn = (e: ProgressEvent) => void;
 
 const nextFrame = (): Promise<number> =>
   typeof requestAnimationFrame === 'function'
-    ? new Promise((r) => requestAnimationFrame((t) => r(t)))
-    : new Promise((r) => setTimeout(() => r(performance.now()), 0));
+    ? new Promise(r => requestAnimationFrame(t => r(t)))
+    : new Promise(r => setTimeout(() => r(performance.now()), 0));
 
 // Run one benchmark's runFrame once and return the CPU time (ms) to encode+submit.
 async function timedFrame(bench: Benchmark, count: number): Promise<number> {
@@ -105,7 +105,13 @@ async function runOne(
   onProgress?: ProgressFn,
 ): Promise<BenchResult> {
   const report = (phase: ProgressEvent['phase']) =>
-    onProgress?.({ benchId: bench.id, benchName: bench.name, index, total, phase });
+    onProgress?.({
+      benchId: bench.id,
+      benchName: bench.name,
+      index,
+      total,
+      phase,
+    });
 
   report('init');
   ctx.device.pushErrorScope('validation');
@@ -138,7 +144,8 @@ async function runOne(
   // Use the sum of measured CPU encode time (excludes the rAF idle wait between
   // frames) as the basis for units/second, so the rate reflects WebGPU CPU cost.
   const cpuTotalMs = cpuSamples.reduce((a, b) => a + b, 0);
-  const unitsPerSecond = cpuTotalMs > 0 ? (count * frames * 1000) / cpuTotalMs : 0;
+  const unitsPerSecond =
+    cpuTotalMs > 0 ? (count * frames * 1000) / cpuTotalMs : 0;
   // GPU-bound detection requires GPU timing; without timestamp queries wired in
   // we cannot tell, so we do not flag (a false flag is worse than none). Revisited
   // when per-pass timestamp timing is integrated.
@@ -172,7 +179,9 @@ export async function runBenchmarks(
 ): Promise<BenchResult[]> {
   const results: BenchResult[] = [];
   for (let i = 0; i < benches.length; i++) {
-    results.push(await runOne(benches[i], ctx, profile, i, benches.length, onProgress));
+    results.push(
+      await runOne(benches[i], ctx, profile, i, benches.length, onProgress),
+    );
   }
   return results;
 }

@@ -2,7 +2,7 @@
 // trivial (3-vertex micro-triangles placed on a grid via instance_index) so the
 // cost is dominated by issuing the draw/encode calls, not by rasterization.
 
-import type { BenchContext } from '../types.js';
+import type {BenchContext} from '../types.js';
 
 // Tiny triangle. Position offset + color are derived from instance_index, which
 // each benchmark sets as `firstInstance` per draw — giving visual variety with
@@ -46,14 +46,17 @@ export interface MicroPipeline {
 
 // Build the shared micro-triangle pipeline + per-frame uniform. `gridN^2` is the
 // number of grid cells used to lay out instances for visual spread.
-export function createMicroPipeline(ctx: BenchContext, gridN = 64): MicroPipeline {
-  const { device, format } = ctx;
-  const module = device.createShaderModule({ code: MICRO_WGSL });
+export function createMicroPipeline(
+  ctx: BenchContext,
+  gridN = 64,
+): MicroPipeline {
+  const {device, format} = ctx;
+  const module = device.createShaderModule({code: MICRO_WGSL});
   const pipeline = device.createRenderPipeline({
     layout: 'auto',
-    vertex: { module, entryPoint: 'vs' },
-    fragment: { module, entryPoint: 'fs', targets: [{ format }] },
-    primitive: { topology: 'triangle-list' },
+    vertex: {module, entryPoint: 'vs'},
+    fragment: {module, entryPoint: 'fs', targets: [{format}]},
+    primitive: {topology: 'triangle-list'},
   });
   const uniform = device.createBuffer({
     size: 16,
@@ -61,7 +64,7 @@ export function createMicroPipeline(ctx: BenchContext, gridN = 64): MicroPipelin
   });
   const bindGroup = device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
-    entries: [{ binding: 0, resource: { buffer: uniform } }],
+    entries: [{binding: 0, resource: {buffer: uniform}}],
   });
   const data = new Float32Array([0, gridN]);
 
@@ -77,7 +80,7 @@ export function createMicroPipeline(ctx: BenchContext, gridN = 64): MicroPipelin
     colorAttachment(): GPURenderPassColorAttachment {
       return {
         view: ctx.context.getCurrentTexture().createView(),
-        clearValue: { r: 0.04, g: 0.05, b: 0.08, a: 1 },
+        clearValue: {r: 0.04, g: 0.05, b: 0.08, a: 1},
         loadOp: 'clear',
         storeOp: 'store',
       };
@@ -95,7 +98,10 @@ export function nowSeconds(): number {
 
 // An animated clear-only color attachment on the canvas, for benchmarks whose
 // work is not rendering (uploads, compute) but which should still show motion.
-export function animatedClear(ctx: BenchContext, time: number): GPURenderPassColorAttachment {
+export function animatedClear(
+  ctx: BenchContext,
+  time: number,
+): GPURenderPassColorAttachment {
   return {
     view: ctx.context.getCurrentTexture().createView(),
     clearValue: {
@@ -110,8 +116,14 @@ export function animatedClear(ctx: BenchContext, time: number): GPURenderPassCol
 }
 
 // Encode a tiny animated clear pass so the canvas shows progress.
-export function encodeAnimatedClear(ctx: BenchContext, encoder: GPUCommandEncoder, time: number): void {
-  const pass = encoder.beginRenderPass({ colorAttachments: [animatedClear(ctx, time)] });
+export function encodeAnimatedClear(
+  ctx: BenchContext,
+  encoder: GPUCommandEncoder,
+  time: number,
+): void {
+  const pass = encoder.beginRenderPass({
+    colorAttachments: [animatedClear(ctx, time)],
+  });
   pass.end();
 }
 
@@ -124,7 +136,10 @@ export interface OffscreenTarget {
 
 // A small offscreen render target for benchmarks that render but should not fight
 // over the canvas texture (e.g. many independent render passes).
-export function createOffscreenTarget(ctx: BenchContext, size = 256): OffscreenTarget {
+export function createOffscreenTarget(
+  ctx: BenchContext,
+  size = 256,
+): OffscreenTarget {
   const texture = ctx.device.createTexture({
     size: [size, size],
     format: ctx.format,
@@ -135,7 +150,12 @@ export function createOffscreenTarget(ctx: BenchContext, size = 256): OffscreenT
     texture,
     view,
     colorAttachment(): GPURenderPassColorAttachment {
-      return { view, clearValue: { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'store' };
+      return {
+        view,
+        clearValue: {r: 0, g: 0, b: 0, a: 1},
+        loadOp: 'clear',
+        storeOp: 'store',
+      };
     },
     dispose() {
       texture.destroy();
@@ -161,13 +181,19 @@ export interface TrivialCompute {
 }
 
 export function createTrivialCompute(ctx: BenchContext): TrivialCompute {
-  const { device } = ctx;
-  const module = device.createShaderModule({ code: TRIVIAL_COMPUTE_WGSL });
-  const pipeline = device.createComputePipeline({ layout: 'auto', compute: { module, entryPoint: 'main' } });
-  const buffer = device.createBuffer({ size: 256, usage: GPUBufferUsage.STORAGE });
+  const {device} = ctx;
+  const module = device.createShaderModule({code: TRIVIAL_COMPUTE_WGSL});
+  const pipeline = device.createComputePipeline({
+    layout: 'auto',
+    compute: {module, entryPoint: 'main'},
+  });
+  const buffer = device.createBuffer({
+    size: 256,
+    usage: GPUBufferUsage.STORAGE,
+  });
   const bindGroup = device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
-    entries: [{ binding: 0, resource: { buffer } }],
+    entries: [{binding: 0, resource: {buffer}}],
   });
-  return { pipeline, bindGroup, dispose: () => buffer.destroy() };
+  return {pipeline, bindGroup, dispose: () => buffer.destroy()};
 }

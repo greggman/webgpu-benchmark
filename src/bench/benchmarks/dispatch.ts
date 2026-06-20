@@ -1,7 +1,7 @@
 // Benchmark: many `dispatchWorkgroups()` calls. A trivial compute shader with a
 // single-invocation workgroup; each frame issues `count` dispatches in one
 // compute pass. Measures the WebGPU dispatch-encode path, not GPU compute.
-import type { Benchmark, BenchContext } from '../types.js';
+import type {Benchmark, BenchContext} from '../types.js';
 import {
   createTrivialCompute,
   encodeAnimatedClear,

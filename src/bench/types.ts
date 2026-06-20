@@ -43,7 +43,12 @@ export interface RunMetadata {
   label: string;
   timestamp: string; // ISO
   userAgent: string;
-  adapter: { vendor: string; architecture: string; device: string; description: string };
+  adapter: {
+    vendor: string;
+    architecture: string;
+    device: string;
+    description: string;
+  };
 }
 
 export interface RunRecord {

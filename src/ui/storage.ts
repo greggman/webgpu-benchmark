@@ -1,6 +1,6 @@
 // Persistence of runs in localStorage, keyed by timestamp + label, plus a small
 // history UI to reload or delete saved runs.
-import type { RunRecord } from '../bench/types.js';
+import type {RunRecord} from '../bench/types.js';
 
 const KEY = 'webgpu-benchmark:runs';
 const MAX_RUNS = 50;
@@ -32,17 +32,20 @@ function writeRuns(runs: StoredRun[]): void {
 export function saveRun(record: RunRecord): StoredRun {
   const key = `${record.meta.timestamp} ${record.meta.label || 'unlabeled'}`;
   const runs = listRuns();
-  runs.unshift({ key, record });
+  runs.unshift({key, record});
   writeRuns(runs);
-  return { key, record };
+  return {key, record};
 }
 
 export function deleteRun(key: string): void {
-  writeRuns(listRuns().filter((r) => r.key !== key));
+  writeRuns(listRuns().filter(r => r.key !== key));
 }
 
 // Render the saved-run history. `onSelect` is called when a run is clicked.
-export function renderHistory(container: HTMLElement, onSelect: (rec: RunRecord) => void): void {
+export function renderHistory(
+  container: HTMLElement,
+  onSelect: (rec: RunRecord) => void,
+): void {
   container.replaceChildren();
   const runs = listRuns();
   const h = document.createElement('h2');
@@ -57,7 +60,7 @@ export function renderHistory(container: HTMLElement, onSelect: (rec: RunRecord)
   }
   const ul = document.createElement('ul');
   ul.className = 'bench-list';
-  for (const { key, record } of runs) {
+  for (const {key, record} of runs) {
     const li = document.createElement('li');
     const open = document.createElement('button');
     open.className = 'secondary';

@@ -2,8 +2,8 @@
 // baked-in reference baseline so a score of ~1000 means "matches the reference
 // machine" and higher is better. Baselines are intentionally easy to retune
 // after collecting real runs.
-import { geomean } from '../gpu/timing.js';
-import type { BenchResult } from '../bench/types.js';
+import {geomean} from '../gpu/timing.js';
+import type {BenchResult} from '../bench/types.js';
 
 // Reference units/second captured on a development machine. These are rough
 // placeholders; retune from real data. Higher hardware/impl -> score > 1000.
@@ -31,5 +31,5 @@ export function scoreFor(benchId: string, unitsPerSecond: number): number {
 // Overall score = geometric mean of per-benchmark scores (resists domination by
 // any single benchmark's magnitude).
 export function overallScore(results: BenchResult[]): number {
-  return geomean(results.map((r) => r.score));
+  return geomean(results.map(r => r.score));
 }

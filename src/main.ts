@@ -1,11 +1,11 @@
 // App entry: initialize WebGPU, mount the benchmark UI, and expose a quick-run
 // hook used by the automated Puppeteer tests.
-import { initGpu, GpuUnsupportedError } from './gpu/device.js';
-import type { BenchContext, RunRecord } from './bench/types.js';
-import { benchmarks } from './bench/registry.js';
-import { runBenchmarks, QUICK_PROFILE } from './bench/runner.js';
-import { makeRunRecord } from './ui/record.js';
-import { createApp } from './ui/app.js';
+import {initGpu, GpuUnsupportedError} from './gpu/device.js';
+import type {BenchContext, RunRecord} from './bench/types.js';
+import {benchmarks} from './bench/registry.js';
+import {runBenchmarks, QUICK_PROFILE} from './bench/runner.js';
+import {makeRunRecord} from './ui/record.js';
+import {createApp} from './ui/app.js';
 
 declare global {
   interface Window {
@@ -26,7 +26,8 @@ async function main() {
     gpu = await initGpu(canvas);
   } catch (err) {
     unsupported.hidden = false;
-    reason.textContent = err instanceof GpuUnsupportedError ? `(${err.message})` : String(err);
+    reason.textContent =
+      err instanceof GpuUnsupportedError ? `(${err.message})` : String(err);
     return;
   }
 
@@ -44,16 +45,18 @@ async function main() {
     description: gpu.adapterInfo.description,
   };
 
-  createApp(panel, { ctx, adapter });
+  createApp(panel, {ctx, adapter});
 
   // --- Test hooks (used by the Puppeteer smoke test) ---
-  window.__benchIds = () => benchmarks.map((b) => b.id);
+  window.__benchIds = () => benchmarks.map(b => b.id);
   window.__runQuick = async (ids?: string[]): Promise<RunRecord> => {
-    const selected = ids ? benchmarks.filter((b) => ids.includes(b.id)) : benchmarks;
+    const selected = ids
+      ? benchmarks.filter(b => ids.includes(b.id))
+      : benchmarks;
     const results = await runBenchmarks(selected, ctx, QUICK_PROFILE);
     return makeRunRecord(results, 'quick', adapter);
   };
   window.__ready = true;
 }
 
-main();
+void main();

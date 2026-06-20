@@ -1,8 +1,8 @@
 // Benchmark: many `drawIndexedIndirect()` calls. Indirect buffer holds many
 // 5-uint records (indexCount, instanceCount, firstIndex, baseVertex,
 // firstInstance). Each frame issues `count` drawIndexedIndirect() calls.
-import type { Benchmark, BenchContext } from '../types.js';
-import { createMicroPipeline, nowSeconds, type MicroPipeline } from './shared.js';
+import type {Benchmark, BenchContext} from '../types.js';
+import {createMicroPipeline, nowSeconds, type MicroPipeline} from './shared.js';
 
 const ENTRIES = 1 << 16;
 const STRIDE = 20; // bytes per drawIndexedIndirect record
@@ -18,7 +18,8 @@ function createBench(): Benchmark {
   return {
     id: 'drawIndexedIndirect',
     name: 'drawIndexedIndirect() x N',
-    description: 'Many drawIndexedIndirect() calls reading from one indirect buffer.',
+    description:
+      'Many drawIndexedIndirect() calls reading from one indirect buffer.',
     unit: 'draws',
 
     async init(c) {
@@ -48,7 +49,9 @@ function createBench(): Benchmark {
     runFrame(count) {
       mp.setUniform(nowSeconds());
       const encoder = ctx.device.createCommandEncoder();
-      const pass = encoder.beginRenderPass({ colorAttachments: [mp.colorAttachment()] });
+      const pass = encoder.beginRenderPass({
+        colorAttachments: [mp.colorAttachment()],
+      });
       pass.setPipeline(mp.pipeline);
       pass.setBindGroup(0, mp.bindGroup);
       pass.setIndexBuffer(indexBuffer, 'uint16');

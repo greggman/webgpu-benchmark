@@ -1,14 +1,18 @@
 // The benchmark app UI: benchmark selection (all on by default), a labelled Run,
 // live progress, and a results table. Persistence + comparison are layered on in
 // storage.ts / compare.ts and wired here.
-import type { BenchContext, RunRecord } from '../bench/types.js';
-import type { AdapterInfoLike } from './record.js';
-import { benchmarks } from '../bench/registry.js';
-import { runBenchmarks, FULL_PROFILE, type ProgressEvent } from '../bench/runner.js';
-import { makeRunRecord } from './record.js';
-import { renderResults } from './results.js';
-import { saveRun, renderHistory } from './storage.js';
-import { mountCompare } from './compare.js';
+import type {BenchContext, RunRecord} from '../bench/types.js';
+import type {AdapterInfoLike} from './record.js';
+import {benchmarks} from '../bench/registry.js';
+import {
+  runBenchmarks,
+  FULL_PROFILE,
+  type ProgressEvent,
+} from '../bench/runner.js';
+import {makeRunRecord} from './record.js';
+import {renderResults} from './results.js';
+import {saveRun, renderHistory} from './storage.js';
+import {mountCompare} from './compare.js';
 
 export interface AppDeps {
   ctx: BenchContext;
@@ -75,21 +79,25 @@ export function createApp(root: HTMLElement, deps: AppDeps): void {
   let lastRecord: RunRecord | null = null;
 
   const refreshHistory = () =>
-    renderHistory(historyEl, (rec) => {
+    renderHistory(historyEl, rec => {
       lastRecord = rec;
       renderResults(resultsEl, rec);
       saveBtn.disabled = false;
     });
 
-  allBtn.addEventListener('click', () => checkboxes.forEach((cb) => (cb.checked = true)));
-  noneBtn.addEventListener('click', () => checkboxes.forEach((cb) => (cb.checked = false)));
+  allBtn.addEventListener('click', () =>
+    checkboxes.forEach(cb => (cb.checked = true)),
+  );
+  noneBtn.addEventListener('click', () =>
+    checkboxes.forEach(cb => (cb.checked = false)),
+  );
 
   const onProgress = (e: ProgressEvent) => {
     status.textContent = `(${e.index + 1}/${e.total}) ${e.benchName} — ${PHASE_LABEL[e.phase]}…`;
   };
 
   runBtn.addEventListener('click', async () => {
-    const selected = benchmarks.filter((b) => checkboxes.get(b.id)?.checked);
+    const selected = benchmarks.filter(b => checkboxes.get(b.id)?.checked);
     if (selected.length === 0) {
       status.textContent = 'Select at least one benchmark.';
       return;
@@ -97,8 +105,17 @@ export function createApp(root: HTMLElement, deps: AppDeps): void {
     runBtn.disabled = saveBtn.disabled = true;
     resultsEl.replaceChildren();
     try {
-      const results = await runBenchmarks(selected, deps.ctx, FULL_PROFILE, onProgress);
-      lastRecord = makeRunRecord(results, labelInput.value.trim(), deps.adapter);
+      const results = await runBenchmarks(
+        selected,
+        deps.ctx,
+        FULL_PROFILE,
+        onProgress,
+      );
+      lastRecord = makeRunRecord(
+        results,
+        labelInput.value.trim(),
+        deps.adapter,
+      );
       renderResults(resultsEl, lastRecord);
       saveRun(lastRecord);
       refreshHistory();
@@ -123,7 +140,9 @@ export function createApp(root: HTMLElement, deps: AppDeps): void {
 function downloadJson(record: RunRecord): void {
   const safeLabel = (record.meta.label || 'run').replace(/[^\w.-]+/g, '_');
   const stamp = record.meta.timestamp.replace(/[:.]/g, '-');
-  const blob = new Blob([JSON.stringify(record, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(record, null, 2)], {
+    type: 'application/json',
+  });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

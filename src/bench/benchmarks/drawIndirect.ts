@@ -2,8 +2,8 @@
 // 4-uint draw-argument records (vertexCount, instanceCount, firstVertex,
 // firstInstance); each frame issues `count` drawIndirect() calls reading
 // successive records. firstInstance per record drives grid placement.
-import type { Benchmark, BenchContext } from '../types.js';
-import { createMicroPipeline, nowSeconds, type MicroPipeline } from './shared.js';
+import type {Benchmark, BenchContext} from '../types.js';
+import {createMicroPipeline, nowSeconds, type MicroPipeline} from './shared.js';
 
 const ENTRIES = 1 << 16; // reused via modulo when count exceeds this
 const STRIDE = 16; // bytes per drawIndirect record
@@ -41,7 +41,9 @@ function createBench(): Benchmark {
     runFrame(count) {
       mp.setUniform(nowSeconds());
       const encoder = ctx.device.createCommandEncoder();
-      const pass = encoder.beginRenderPass({ colorAttachments: [mp.colorAttachment()] });
+      const pass = encoder.beginRenderPass({
+        colorAttachments: [mp.colorAttachment()],
+      });
       pass.setPipeline(mp.pipeline);
       pass.setBindGroup(0, mp.bindGroup);
       for (let i = 0; i < count; i++) {

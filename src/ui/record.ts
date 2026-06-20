@@ -1,6 +1,6 @@
 // Assembles a RunRecord (results + metadata + overall) from raw results.
-import type { BenchResult, RunRecord } from '../bench/types.js';
-import { overallScore } from './score.js';
+import type {BenchResult, RunRecord} from '../bench/types.js';
+import {overallScore} from './score.js';
 
 export interface AdapterInfoLike {
   vendor: string;

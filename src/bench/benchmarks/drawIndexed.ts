@@ -1,7 +1,7 @@
 // Benchmark: many `drawIndexed()` calls. Same micro-triangle, driven by a 3-entry
 // index buffer; firstInstance carries the draw index for grid placement.
-import type { Benchmark, BenchContext } from '../types.js';
-import { createMicroPipeline, nowSeconds, type MicroPipeline } from './shared.js';
+import type {Benchmark, BenchContext} from '../types.js';
+import {createMicroPipeline, nowSeconds, type MicroPipeline} from './shared.js';
 
 export const drawIndexedBench: Benchmark = createBench();
 
@@ -29,7 +29,9 @@ function createBench(): Benchmark {
     runFrame(count) {
       mp.setUniform(nowSeconds());
       const encoder = ctx.device.createCommandEncoder();
-      const pass = encoder.beginRenderPass({ colorAttachments: [mp.colorAttachment()] });
+      const pass = encoder.beginRenderPass({
+        colorAttachments: [mp.colorAttachment()],
+      });
       pass.setPipeline(mp.pipeline);
       pass.setBindGroup(0, mp.bindGroup);
       pass.setIndexBuffer(indexBuffer, 'uint16');

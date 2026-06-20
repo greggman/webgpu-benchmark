@@ -1,7 +1,7 @@
 // Drag-and-drop comparison of two or more runs. Drop JSON files exported by the
 // app (or pick from history) to see per-benchmark scores side by side with the
 // delta vs the first run.
-import type { RunRecord, BenchResult } from '../bench/types.js';
+import type {RunRecord, BenchResult} from '../bench/types.js';
 
 function isRunRecord(x: unknown): x is RunRecord {
   return (
@@ -24,7 +24,8 @@ export function mountCompare(container: HTMLElement): CompareApi {
   h.textContent = 'Compare runs';
   const zone = document.createElement('div');
   zone.className = 'dropzone';
-  zone.textContent = 'Drag & drop two or more exported JSON runs here to compare.';
+  zone.textContent =
+    'Drag & drop two or more exported JSON runs here to compare.';
   const tableWrap = document.createElement('div');
   container.append(h, zone, tableWrap);
 
@@ -46,12 +47,12 @@ export function mountCompare(container: HTMLElement): CompareApi {
     render();
   };
 
-  zone.addEventListener('dragover', (e) => {
+  zone.addEventListener('dragover', e => {
     e.preventDefault();
     zone.classList.add('over');
   });
   zone.addEventListener('dragleave', () => zone.classList.remove('over'));
-  zone.addEventListener('drop', async (e) => {
+  zone.addEventListener('drop', async e => {
     e.preventDefault();
     zone.classList.remove('over');
     const files = Array.from(e.dataTransfer?.files ?? []);
@@ -66,7 +67,13 @@ export function mountCompare(container: HTMLElement): CompareApi {
     }
   });
 
-  return { add, clear: () => { records.length = 0; render(); } };
+  return {
+    add,
+    clear: () => {
+      records.length = 0;
+      render();
+    },
+  };
 }
 
 function deltaCell(value: number, base: number): string {
@@ -103,12 +110,15 @@ function renderCompareTable(
     }
   }
   const byId = (rec: RunRecord): Map<string, BenchResult> =>
-    new Map(rec.results.map((r) => [r.id, r]));
+    new Map(rec.results.map(r => [r.id, r]));
   const maps = records.map(byId);
 
   const table = document.createElement('table');
   const head = records
-    .map((rec, i) => `<th class="num">${rec.meta.label || `run ${i + 1}`}${i > 0 ? ' (Δ)' : ''}</th>`)
+    .map(
+      (rec, i) =>
+        `<th class="num">${rec.meta.label || `run ${i + 1}`}${i > 0 ? ' (Δ)' : ''}</th>`,
+    )
     .join('');
   table.innerHTML = `<thead><tr><th>Benchmark</th>${head}</tr></thead>`;
 

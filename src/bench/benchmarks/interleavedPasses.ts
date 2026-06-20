@@ -2,7 +2,7 @@
 // one small render pass (to an offscreen target) and one compute pass that touch
 // independent resources, so there is no data dependency between them. Some WebGPU
 // implementations parallelize independent passes; this rewards that.
-import type { Benchmark, BenchContext } from '../types.js';
+import type {Benchmark, BenchContext} from '../types.js';
 import {
   createMicroPipeline,
   createOffscreenTarget,
@@ -26,7 +26,8 @@ function createBench(): Benchmark {
   return {
     id: 'interleavedPasses',
     name: 'interleaved render+compute x N',
-    description: 'Alternating non-dependent render and compute passes per frame.',
+    description:
+      'Alternating non-dependent render and compute passes per frame.',
     unit: 'pass pairs',
 
     async init(c) {
@@ -41,10 +42,13 @@ function createBench(): Benchmark {
       const encoder = ctx.device.createCommandEncoder();
       for (let i = 0; i < count; i++) {
         // Render pass -> offscreen target (independent of the compute output).
-        const rp = encoder.beginRenderPass({ colorAttachments: [target.colorAttachment()] });
+        const rp = encoder.beginRenderPass({
+          colorAttachments: [target.colorAttachment()],
+        });
         rp.setPipeline(mp.pipeline);
         rp.setBindGroup(0, mp.bindGroup);
-        for (let d = 0; d < RENDER_DRAWS; d++) rp.draw(3, 1, 0, i * RENDER_DRAWS + d);
+        for (let d = 0; d < RENDER_DRAWS; d++)
+          rp.draw(3, 1, 0, i * RENDER_DRAWS + d);
         rp.end();
         // Compute pass -> storage buffer (independent of the render output).
         const cp = encoder.beginComputePass();

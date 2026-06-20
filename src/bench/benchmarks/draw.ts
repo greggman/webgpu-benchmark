@@ -3,8 +3,8 @@
 // draw index so each triangle lands in a different grid cell (visual variety,
 // no extra GPU cost). Measures the per-draw encode cost of the WebGPU impl.
 
-import type { Benchmark, BenchContext } from '../types.js';
-import { createMicroPipeline, nowSeconds, type MicroPipeline } from './shared.js';
+import type {Benchmark, BenchContext} from '../types.js';
+import {createMicroPipeline, nowSeconds, type MicroPipeline} from './shared.js';
 
 export const drawBench: Benchmark = createDrawBench();
 
@@ -26,7 +26,9 @@ function createDrawBench(): Benchmark {
     runFrame(count) {
       mp.setUniform(nowSeconds());
       const encoder = ctx.device.createCommandEncoder();
-      const pass = encoder.beginRenderPass({ colorAttachments: [mp.colorAttachment()] });
+      const pass = encoder.beginRenderPass({
+        colorAttachments: [mp.colorAttachment()],
+      });
       pass.setPipeline(mp.pipeline);
       pass.setBindGroup(0, mp.bindGroup);
       for (let i = 0; i < count; i++) {
