@@ -18,14 +18,22 @@ export interface CompareApi {
   clear(): void;
 }
 
-export function mountCompare(container: HTMLElement): CompareApi {
+export interface CompareOptions {
+  // Called for each valid run dropped in, so the host can persist it.
+  onImport?: (record: RunRecord) => void;
+}
+
+export function mountCompare(
+  container: HTMLElement,
+  opts: CompareOptions = {},
+): CompareApi {
   container.replaceChildren();
   const h = document.createElement('h2');
   h.textContent = 'Compare runs';
   const zone = document.createElement('div');
   zone.className = 'dropzone';
   zone.textContent =
-    'Drag & drop two or more exported JSON runs here to compare.';
+    'Drag & drop exported JSON runs here to compare them (also added to History).';
   const tableWrap = document.createElement('div');
   container.append(h, zone, tableWrap);
 
@@ -59,8 +67,12 @@ export function mountCompare(container: HTMLElement): CompareApi {
     for (const file of files) {
       try {
         const parsed = JSON.parse(await file.text());
-        if (isRunRecord(parsed)) add(parsed);
-        else console.warn(`${file.name} is not a benchmark run`);
+        if (isRunRecord(parsed)) {
+          add(parsed);
+          opts.onImport?.(parsed);
+        } else {
+          console.warn(`${file.name} is not a benchmark run`);
+        }
       } catch (err) {
         console.warn(`Could not read ${file.name}:`, err);
       }

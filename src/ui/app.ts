@@ -11,8 +11,8 @@ import {
 } from '../bench/runner.js';
 import {makeRunRecord} from './record.js';
 import {renderResults} from './results.js';
-import {saveRun, renderHistory} from './storage.js';
-import {mountCompare} from './compare.js';
+import {saveRun, importRun, renderHistory} from './storage.js';
+import {mountCompare, type CompareApi} from './compare.js';
 
 export interface AppDeps {
   ctx: BenchContext;
@@ -49,11 +49,11 @@ export function createApp(root: HTMLElement, deps: AppDeps): void {
   }
 
   // --- Toolbar ---
+  // No pre-run label field: runs are recorded with just a timestamp and can be
+  // labelled afterward from the History panel (the common case is forgetting to
+  // label up front).
   const toolbar = document.createElement('div');
   toolbar.className = 'toolbar';
-  const labelInput = document.createElement('input');
-  labelInput.type = 'text';
-  labelInput.placeholder = 'Run label (e.g. "Chrome 149 M3")';
   const runBtn = document.createElement('button');
   runBtn.textContent = 'Run selected';
   const allBtn = document.createElement('button');
@@ -66,7 +66,7 @@ export function createApp(root: HTMLElement, deps: AppDeps): void {
   saveBtn.className = 'secondary';
   saveBtn.textContent = 'Download JSON';
   saveBtn.disabled = true;
-  toolbar.append(labelInput, runBtn, allBtn, noneBtn, saveBtn);
+  toolbar.append(runBtn, allBtn, noneBtn, saveBtn);
 
   const status = document.createElement('p');
   status.className = 'status';
@@ -78,12 +78,18 @@ export function createApp(root: HTMLElement, deps: AppDeps): void {
 
   let lastRecord: RunRecord | null = null;
 
-  const refreshHistory = () =>
-    renderHistory(historyEl, rec => {
-      lastRecord = rec;
-      renderResults(resultsEl, rec);
-      saveBtn.disabled = false;
+  // Hoisted so it can be referenced by the compare panel's onImport below while
+  // still closing over `compare` (which is created after).
+  function refreshHistory() {
+    renderHistory(historyEl, {
+      onSelect: rec => {
+        lastRecord = rec;
+        renderResults(resultsEl, rec);
+        saveBtn.disabled = false;
+      },
+      onCompare: rec => compare.add(rec),
     });
+  }
 
   allBtn.addEventListener('click', () =>
     checkboxes.forEach(cb => (cb.checked = true)),
@@ -111,11 +117,7 @@ export function createApp(root: HTMLElement, deps: AppDeps): void {
         FULL_PROFILE,
         onProgress,
       );
-      lastRecord = makeRunRecord(
-        results,
-        labelInput.value.trim(),
-        deps.adapter,
-      );
+      lastRecord = makeRunRecord(results, '', deps.adapter);
       renderResults(resultsEl, lastRecord);
       saveRun(lastRecord);
       refreshHistory();
@@ -133,7 +135,13 @@ export function createApp(root: HTMLElement, deps: AppDeps): void {
     downloadJson(lastRecord);
   });
 
-  mountCompare(compareEl);
+  // Dropping a JSON run into the compare panel also files it into History
+  // (deduped by timestamp) so it persists alongside local runs.
+  const compare: CompareApi = mountCompare(compareEl, {
+    onImport: record => {
+      if (importRun(record)) refreshHistory();
+    },
+  });
   refreshHistory();
 }
 

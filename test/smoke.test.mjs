@@ -48,6 +48,8 @@ test('every benchmark runs and produces a finite positive score', async () => {
     assert.ok(Number.isFinite(r.score) && r.score > 0, `${id}: score finite & positive (got ${r.score})`);
     assert.ok(Number.isFinite(r.unitsPerSecond) && r.unitsPerSecond > 0, `${id}: throughput positive`);
     assert.ok(r.count >= 1, `${id}: calibrated a count`);
+    assert.ok(Number.isFinite(r.gpuMsMedian) && r.gpuMsMedian >= 0, `${id}: gpu time finite & non-negative`);
+    assert.equal(typeof r.gpuBound, 'boolean', `${id}: gpuBound is a boolean`);
   }
 });
 
@@ -55,6 +57,162 @@ test('an overall score is computed across all benchmarks', async () => {
   const record = await page.evaluate('window.__runQuick()');
   assert.ok(Number.isFinite(record.overall) && record.overall > 0, 'overall finite & positive');
   assert.equal(record.results.length, (await page.evaluate('window.__benchIds()')).length);
+});
+
+test('a saved run can be relabelled from history after the fact', async () => {
+  // Seed an unlabelled run, reload so the history panel renders it.
+  await page.evaluate(() => {
+    const record = {
+      meta: {
+        label: '',
+        timestamp: '2026-01-02T03:04:05.000Z',
+        userAgent: 'test',
+        adapter: {vendor: '', architecture: '', device: '', description: ''},
+      },
+      results: [],
+      overall: 1234,
+    };
+    const key = `${record.meta.timestamp} unlabeled`;
+    localStorage.setItem('webgpu-benchmark:runs', JSON.stringify([{key, record}]));
+  });
+  await page.reload({waitUntil: 'load'});
+  await page.waitForFunction('window.__ready === true', {timeout: 20000});
+
+  // Click the row's ✎ (rename) button.
+  const editBtn = await page.evaluateHandle(() =>
+    [...document.querySelectorAll('button')].find(b => b.textContent === '✎'),
+  );
+  await editBtn.asElement().click();
+
+  // Type a label and save with Enter.
+  await page.type('input[placeholder="Label this run"]', 'renamed-after-run');
+  await page.keyboard.press('Enter');
+
+  const stored = await page.evaluate(() => {
+    const runs = JSON.parse(localStorage.getItem('webgpu-benchmark:runs'));
+    return runs[0].record.meta.label;
+  });
+  assert.equal(stored, 'renamed-after-run');
+
+  // The history button should reflect the new label too.
+  const buttonText = await page.$$eval('.bench-list button', els =>
+    els.map(e => e.textContent).join('|'),
+  );
+  assert.ok(
+    buttonText.includes('renamed-after-run'),
+    `history shows new label (got: ${buttonText})`,
+  );
+});
+
+test('dropping a JSON run imports it into history and dedupes', async () => {
+  const ts = '2025-05-05T05:05:05.000Z';
+  const before = await page.evaluate(
+    () =>
+      JSON.parse(localStorage.getItem('webgpu-benchmark:runs') || '[]').length,
+  );
+
+  const dropOnce = () =>
+    page.evaluate(timestamp => {
+      const record = {
+        meta: {
+          label: 'dropped',
+          timestamp,
+          userAgent: 't',
+          adapter: {vendor: '', architecture: '', device: '', description: ''},
+        },
+        results: [],
+        overall: 777,
+      };
+      const dt = new DataTransfer();
+      dt.items.add(
+        new File([JSON.stringify(record)], 'run.json', {
+          type: 'application/json',
+        }),
+      );
+      const zone = document.querySelector('.dropzone');
+      zone.dispatchEvent(
+        new DragEvent('drop', {dataTransfer: dt, bubbles: true, cancelable: true}),
+      );
+    }, ts);
+
+  await dropOnce();
+  await page.waitForFunction(
+    t =>
+      JSON.parse(localStorage.getItem('webgpu-benchmark:runs') || '[]').some(
+        r => r.record.meta.timestamp === t,
+      ),
+    {timeout: 5000},
+    ts,
+  );
+
+  // A second drop of the same run must not create a duplicate.
+  await dropOnce();
+  await page.evaluate(() => new Promise(r => setTimeout(r, 200)));
+
+  const matches = await page.evaluate(
+    t =>
+      JSON.parse(localStorage.getItem('webgpu-benchmark:runs') || '[]').filter(
+        r => r.record.meta.timestamp === t,
+      ).length,
+    ts,
+  );
+  assert.equal(matches, 1, 'imported once, deduped on second drop');
+
+  const after = await page.evaluate(
+    () =>
+      JSON.parse(localStorage.getItem('webgpu-benchmark:runs') || '[]').length,
+  );
+  assert.equal(after, before + 1, 'exactly one new run added');
+});
+
+test('runs can be added to the comparison from history', async () => {
+  await page.evaluate(() => {
+    const mk = (label, ts, overall) => ({
+      key: `${ts} ${label}`,
+      record: {
+        meta: {
+          label,
+          timestamp: ts,
+          userAgent: 't',
+          adapter: {vendor: '', architecture: '', device: '', description: ''},
+        },
+        results: [],
+        overall,
+      },
+    });
+    localStorage.setItem(
+      'webgpu-benchmark:runs',
+      JSON.stringify([
+        mk('Aaa', '2024-01-01T00:00:00.000Z', 100),
+        mk('Bbb', '2024-02-02T00:00:00.000Z', 200),
+      ]),
+    );
+  });
+  await page.reload({waitUntil: 'load'});
+  await page.waitForFunction('window.__ready === true', {timeout: 20000});
+
+  // Click the ⇄ (add to comparison) button on every history row.
+  await page.evaluate(() => {
+    [...document.querySelectorAll('.bench-list button')]
+      .filter(b => b.textContent === '⇄')
+      .forEach(b => b.click());
+  });
+
+  await page.waitForFunction(
+    () =>
+      [...document.querySelectorAll('button')].some(
+        b => b.textContent === 'Clear comparison',
+      ),
+    {timeout: 5000},
+  );
+
+  const headers = await page.$$eval('table th', els =>
+    els.map(e => e.textContent),
+  );
+  assert.ok(
+    headers.some(h => h.includes('Aaa')) && headers.some(h => h.includes('Bbb')),
+    `comparison shows both runs (headers: ${headers.join(', ')})`,
+  );
 });
 
 test('no page errors were raised during the run', () => {

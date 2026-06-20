@@ -49,14 +49,6 @@ const nextFrame = (): Promise<number> =>
     ? new Promise(r => requestAnimationFrame(t => r(t)))
     : new Promise(r => setTimeout(() => r(performance.now()), 0));
 
-// Run one benchmark's runFrame once and return the CPU time (ms) to encode+submit.
-async function timedFrame(bench: Benchmark, count: number): Promise<number> {
-  const t0 = performance.now();
-  await bench.runFrame(count);
-  const t1 = performance.now();
-  return t1 - t0;
-}
-
 // Run one frame and wait for the GPU to finish it, returning the full wall time
 // (encode + submit + GPU completion). Used during calibration so that benchmarks
 // whose CPU cost is tiny but whose GPU/driver cost is not (queue uploads, image
@@ -129,27 +121,36 @@ async function runOne(
   await ctx.device.queue.onSubmittedWorkDone();
 
   report('measure');
-  const cpuSamples: number[] = [];
+  const cpuSamples: number[] = []; // encode + submit only (the WebGPU-impl cost)
+  const totalSamples: number[] = []; // encode + submit + GPU completion
   let frames = 0;
   for (let i = 0; i < profile.measureFrames; i++) {
-    // Time only the CPU encode+submit (the WebGPU-impl cost), then drain the
-    // queue so GPU work cannot back up across frames.
-    cpuSamples.push(await timedFrame(bench, count));
-    frames++;
+    const t0 = performance.now();
+    await bench.runFrame(count);
+    const tEncode = performance.now();
+    // Drain the queue so GPU work cannot back up across frames, and so the GPU's
+    // own completion time becomes observable.
     await ctx.device.queue.onSubmittedWorkDone();
+    const tDone = performance.now();
+    cpuSamples.push(tEncode - t0);
+    totalSamples.push(tDone - t0);
+    frames++;
     await nextFrame();
   }
 
   const cpuMsMedian = median(cpuSamples);
+  const totalMsMedian = median(totalSamples);
+  // GPU completion time beyond CPU encode time, clamped at zero.
+  const gpuMsMedian = Math.max(0, totalMsMedian - cpuMsMedian);
   // Use the sum of measured CPU encode time (excludes the rAF idle wait between
   // frames) as the basis for units/second, so the rate reflects WebGPU CPU cost.
   const cpuTotalMs = cpuSamples.reduce((a, b) => a + b, 0);
   const unitsPerSecond =
     cpuTotalMs > 0 ? (count * frames * 1000) / cpuTotalMs : 0;
-  // GPU-bound detection requires GPU timing; without timestamp queries wired in
-  // we cannot tell, so we do not flag (a false flag is worse than none). Revisited
-  // when per-pass timestamp timing is integrated.
-  const gpuBound = false;
+  // Flag as GPU-bound when GPU completion dominates the frame: the result then
+  // reflects the GPU more than the WebGPU call path. An absolute floor keeps
+  // sub-millisecond noise from tripping the flag.
+  const gpuBound = gpuMsMedian > cpuMsMedian * 2 && gpuMsMedian > 2;
 
   const err = await ctx.device.popErrorScope();
   if (err) console.warn(`[${bench.id}] validation error:`, err.message);
@@ -164,6 +165,7 @@ async function runOne(
     count,
     frames,
     cpuMsMedian,
+    gpuMsMedian,
     unitsPerSecond,
     gpuBound,
     score: scoreFor(bench.id, unitsPerSecond),
