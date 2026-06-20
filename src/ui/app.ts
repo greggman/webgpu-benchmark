@@ -62,11 +62,14 @@ export function createApp(root: HTMLElement, deps: AppDeps): void {
   const noneBtn = document.createElement('button');
   noneBtn.className = 'secondary';
   noneBtn.textContent = 'Select none';
+  toolbar.append(runBtn, allBtn, noneBtn);
+
+  // Download lives with the results (right after the "Done" status line and above
+  // the score), since that is where the user is looking after a run.
   const saveBtn = document.createElement('button');
   saveBtn.className = 'secondary';
   saveBtn.textContent = 'Download JSON';
   saveBtn.disabled = true;
-  toolbar.append(runBtn, allBtn, noneBtn, saveBtn);
 
   const status = document.createElement('p');
   status.className = 'status';
@@ -74,7 +77,7 @@ export function createApp(root: HTMLElement, deps: AppDeps): void {
   const historyEl = document.createElement('section');
   const compareEl = document.createElement('section');
 
-  root.append(toolbar, list, status, resultsEl, historyEl, compareEl);
+  root.append(toolbar, list, status, saveBtn, resultsEl, historyEl, compareEl);
 
   let lastRecord: RunRecord | null = null;
 
@@ -88,6 +91,7 @@ export function createApp(root: HTMLElement, deps: AppDeps): void {
         saveBtn.disabled = false;
       },
       onCompare: rec => compare.add(rec),
+      onDownload: rec => downloadJson(rec),
     });
   }
 

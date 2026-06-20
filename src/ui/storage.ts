@@ -70,6 +70,8 @@ export interface HistoryHandlers {
   onSelect: (rec: RunRecord) => void;
   // Add a run to the comparison panel.
   onCompare: (rec: RunRecord) => void;
+  // Download a run as JSON.
+  onDownload: (rec: RunRecord) => void;
 }
 
 // Render the saved-run history.
@@ -106,7 +108,7 @@ function historyRow(
   rerender: () => void,
   handlers: HistoryHandlers,
 ): HTMLLIElement {
-  const {onSelect, onCompare} = handlers;
+  const {onSelect, onCompare, onDownload} = handlers;
   const li = document.createElement('li');
   const when = new Date(record.meta.timestamp).toLocaleString();
 
@@ -115,6 +117,12 @@ function historyRow(
   open.textContent = `${when} — ${record.meta.label || 'unlabeled'} — ${Math.round(record.overall)}`;
   open.title = when;
   open.addEventListener('click', () => onSelect(record));
+
+  const download = document.createElement('button');
+  download.className = 'secondary';
+  download.textContent = '⬇';
+  download.title = 'Download JSON';
+  download.addEventListener('click', () => onDownload(record));
 
   const compare = document.createElement('button');
   compare.className = 'secondary';
@@ -173,6 +181,6 @@ function historyRow(
     input.select();
   });
 
-  li.append(open, compare, edit, del);
+  li.append(open, download, compare, edit, del);
   return li;
 }

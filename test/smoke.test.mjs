@@ -221,6 +221,46 @@ test('runs can be added to the comparison from history', async () => {
   );
 });
 
+test('a run can be downloaded from history', async () => {
+  await page.evaluate(() => {
+    const ts = '2023-03-03T03:03:03.000Z';
+    const record = {
+      meta: {
+        label: 'dl-me',
+        timestamp: ts,
+        userAgent: 't',
+        adapter: {vendor: '', architecture: '', device: '', description: ''},
+      },
+      results: [],
+      overall: 42,
+    };
+    localStorage.setItem(
+      'webgpu-benchmark:runs',
+      JSON.stringify([{key: `${ts} dl-me`, record}]),
+    );
+  });
+  await page.reload({waitUntil: 'load'});
+  await page.waitForFunction('window.__ready === true', {timeout: 20000});
+
+  // Capture the download by intercepting the anchor click.
+  const filename = await page.evaluate(
+    () =>
+      new Promise(resolve => {
+        HTMLAnchorElement.prototype.click = function () {
+          resolve(this.download);
+        };
+        const dl = [...document.querySelectorAll('.bench-list button')].find(
+          b => b.textContent === '⬇',
+        );
+        dl.click();
+      }),
+  );
+  assert.ok(
+    filename && filename.includes('dl-me') && filename.endsWith('.json'),
+    `downloaded a labelled JSON file (got: ${filename})`,
+  );
+});
+
 test('no page errors were raised during the run', () => {
   assert.deepEqual(pageErrors, [], `page errors:\n${pageErrors.join('\n')}`);
 });

@@ -2,8 +2,7 @@
 
 A browser benchmark suite that measures the performance of the **WebGPU
 implementation** — the CPU-side cost of issuing API calls, uploading data, and
-encoding passes — rather than the raw throughput of the GPU. Inspired by 3DMark
-and MotionMark.
+encoding passes — rather than the raw throughput of the GPU.
 
 > Why "not the GPU"? A shadertoy-style shader or a million-instance draw is bound
 > by the GPU; it tells you little about the WebGPU layer. Each benchmark here keeps
@@ -70,12 +69,6 @@ In the UI: choose benchmarks (all on by default), give the run a label, and clic
 **Download JSON**, reload past runs from **History** (saved in `localStorage`), and
 **drag & drop** two or more exported JSON files into the *Compare runs* panel to
 see deltas.
-
-## Deployment
-
-`.github/workflows/deploy.yml` builds, typechecks, runs the smoke test (under
-`xvfb` with SwiftShader), and publishes `dist/` to GitHub Pages on push to `main`.
-The page uses relative asset paths, so it works under a project subpath.
 
 ## Notes
 
