@@ -1,25 +1,15 @@
 // Scoring model. Each benchmark yields units/second; we normalize against a
-// baked-in reference baseline so a score of ~1000 means "matches the reference
-// machine" and higher is better. Baselines are intentionally easy to retune
-// after collecting real runs.
+// reference baseline so a score of ~1000 means "matches the reference machine"
+// and higher is better.
+//
+// The baseline lives in `baseline.json` (bundled at build time) and is
+// regenerated with `npm run baseline`, which runs the full suite and captures
+// this machine's units/second. Recenter it on your own hardware that way.
+import baseline from './baseline.json';
 import {geomean} from '../gpu/timing.js';
 import type {BenchResult} from '../bench/types.js';
 
-// Reference units/second captured on a development machine. These are rough
-// placeholders; retune from real data. Higher hardware/impl -> score > 1000.
-export const REFERENCE_UPS: Record<string, number> = {
-  copyExternalImage: 200_000,
-  writeBufferSmall: 1_500_000,
-  writeBufferBig: 4_000,
-  mapAsyncWrite: 3_000,
-  draw: 1_200_000,
-  drawIndexed: 1_100_000,
-  drawIndirect: 900_000,
-  drawIndexedIndirect: 850_000,
-  renderBundle: 3_000_000,
-  dispatch: 1_400_000,
-  interleavedPasses: 60_000,
-};
+export const REFERENCE_UPS: Record<string, number> = baseline.unitsPerSecond;
 
 const DEFAULT_BASELINE = 100_000;
 

@@ -62,18 +62,34 @@ npm run build    # production build into dist/
 npm run serve    # serve an existing dist/
 npm test         # Puppeteer smoke test (short measurement window per benchmark)
 npm run typecheck
+npm run baseline # regenerate src/ui/baseline.json from a full run on this machine
 ```
 
-In the UI: choose benchmarks (all on by default), give the run a label, and click
-**Run selected**. Results show per-benchmark scores and an overall score. You can
-**Download JSON**, reload past runs from **History** (saved in `localStorage`), and
-**drag & drop** two or more exported JSON files into the *Compare runs* panel to
-see deltas.
+### Scoring baseline
+
+Scores are normalized against `src/ui/baseline.json` (bundled at build time): a
+score of ~1000 means "matches the baseline machine", and higher is better. To
+recenter scoring on your own hardware, run:
+
+```bash
+npm run baseline   # runs the full suite headless, writes src/ui/baseline.json
+npm run build      # rebuild to bundle the new baseline
+```
+
+The committed baseline was captured on an Apple M-series (Metal 3) GPU in
+headless Chrome; regenerate to make it meaningful for your setup.
+
+In the UI: choose benchmarks (all on by default) and click **Run selected**.
+Results show per-benchmark scores and an overall score, with a **Download JSON**
+button. Past runs are saved in **History** (`localStorage`), where each run can be
+reloaded, labelled after the fact, downloaded, deleted, or added to the comparison.
+You can also **drag & drop** exported JSON files into the *Compare runs* panel
+(they're added to History too) to see per-benchmark deltas.
 
 ## Notes
 
 - Requires a browser with WebGPU (`navigator.gpu`).
 - `timestamp-query` is requested when available; the runner degrades gracefully
   without it.
-- Reference baselines are placeholders — retune `REFERENCE_UPS` after collecting
-  real runs.
+- The scoring baseline lives in `src/ui/baseline.json`; regenerate it with
+  `npm run baseline` (see *Scoring baseline* above).

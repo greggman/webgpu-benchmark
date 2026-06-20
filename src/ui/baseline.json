@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-06-20T19:16:52.237Z",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36",
+  "adapter": {
+    "vendor": "apple",
+    "architecture": "metal-3",
+    "device": "",
+    "description": ""
+  },
+  "unitsPerSecond": {
+    "copyExternalImage": 14548,
+    "writeBufferSmall": 2653916,
+    "writeBufferBig": 10701,
+    "mapAsyncWrite": 5743,
+    "draw": 12390909,
+    "drawIndexed": 11994909,
+    "drawIndirect": 7382640,
+    "drawIndexedIndirect": 7050240,
+    "renderBundle": 68833,
+    "dispatch": 498304,
+    "interleavedPasses": 15763
+  }
+}

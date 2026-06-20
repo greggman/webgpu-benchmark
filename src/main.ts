@@ -3,7 +3,7 @@
 import {initGpu, GpuUnsupportedError} from './gpu/device.js';
 import type {BenchContext, RunRecord} from './bench/types.js';
 import {benchmarks} from './bench/registry.js';
-import {runBenchmarks, QUICK_PROFILE} from './bench/runner.js';
+import {runBenchmarks, QUICK_PROFILE, FULL_PROFILE} from './bench/runner.js';
 import {makeRunRecord} from './ui/record.js';
 import {createApp} from './ui/app.js';
 
@@ -12,6 +12,8 @@ declare global {
     __ready?: boolean;
     __benchIds?: () => string[];
     __runQuick?: (ids?: string[]) => Promise<RunRecord>;
+    // Full-profile run used by `npm run baseline` to capture reference numbers.
+    __runFull?: (ids?: string[]) => Promise<RunRecord>;
   }
 }
 
@@ -55,6 +57,13 @@ async function main() {
       : benchmarks;
     const results = await runBenchmarks(selected, ctx, QUICK_PROFILE);
     return makeRunRecord(results, 'quick', adapter);
+  };
+  window.__runFull = async (ids?: string[]): Promise<RunRecord> => {
+    const selected = ids
+      ? benchmarks.filter(b => ids.includes(b.id))
+      : benchmarks;
+    const results = await runBenchmarks(selected, ctx, FULL_PROFILE);
+    return makeRunRecord(results, 'baseline', adapter);
   };
   window.__ready = true;
 }
