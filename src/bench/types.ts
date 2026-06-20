@@ -26,15 +26,18 @@ export interface BenchResult {
   id: string;
   name: string;
   unit: string;
-  count: number; // calibrated units per frame
-  frames: number;
+  count: number; // calibrated units per submitted frame
+  frames: number; // frames submitted during the measurement window
   // Median per-frame CPU time (ms) spent encoding + submitting the work.
   cpuMsMedian: number;
-  // Units of work per second sustained (the raw perf number).
+  // Units of work per second sustained with the pipe kept full (the raw number).
   unitsPerSecond: number;
-  // Optional GPU time from timestamp-query (ms median), when available.
-  gpuMsMedian?: number;
-  // True when GPU time dominates frame time -> result may reflect the GPU, not WebGPU.
+  // Fraction of wall-clock time the CPU spent encoding (vs. blocked on
+  // backpressure). Low values mean the GPU/driver, not WebGPU's call path, is
+  // the bottleneck.
+  cpuBusyFraction: number;
+  // True when the CPU is mostly idle waiting on the pipe -> the result reflects
+  // the GPU/driver more than the WebGPU implementation.
   gpuBound: boolean;
   score: number;
 }

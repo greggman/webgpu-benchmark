@@ -1,18 +1,31 @@
 // The benchmark runner: for each benchmark, init -> warmup -> calibrate -> measure.
 //
-// The whole point is to keep the GPU under-utilized so the measured time reflects
-// the WebGPU implementation (CPU-side encode + submit), not the GPU. Calibration
-// picks a per-frame `count` that targets a modest CPU encode time; measurement then
-// records how many units/second that sustains.
+// Throughput is measured by keeping the GPU pipe full -- the standard "frames in
+// flight" pattern -- rather than submitting one frame and waiting for it to fully
+// drain. Draining every frame would measure start+stop latency (accelerate, stop,
+// repeat) instead of sustained throughput, and would hide an implementation that
+// is fast under constant load but has high per-submit latency. We let up to
+// IN_FLIGHT frames be in flight and only block when we get that far ahead (real
+// backpressure), then report units/second over the wall-clock window.
+//
+// Because each benchmark keeps per-call GPU work trivial, the sustained rate
+// reflects the WebGPU submission path for the call-count benchmarks, and the
+// honest driver/upload throughput for the copy/write ones.
 
 import type {Benchmark, BenchContext, BenchResult} from './types.js';
 import {median} from '../gpu/timing.js';
 import {scoreFor} from '../ui/score.js';
 
+// How many frames may be in flight at once during measurement. 2-3 is what real
+// engines use; it keeps the pipe full without unbounded queue growth.
+const IN_FLIGHT = 3;
+// Safety cap so a stalled clock can never loop forever.
+const MAX_MEASURE_FRAMES = 200_000;
+
 export interface RunnerProfile {
   warmupFrames: number;
-  calibrateTargetMs: number; // CPU time we aim each frame to take
-  measureFrames: number;
+  calibrateTargetMs: number; // flushed frame time we size `count` against
+  measureMs: number; // wall-clock duration of the measurement window
   minCount: number;
   maxCount: number;
 }
@@ -20,16 +33,16 @@ export interface RunnerProfile {
 export const FULL_PROFILE: RunnerProfile = {
   warmupFrames: 10,
   calibrateTargetMs: 12,
-  measureFrames: 90,
+  measureMs: 1500,
   minCount: 16,
   maxCount: 1 << 18,
 };
 
-// A fast profile for automated tests: a few frames per benchmark.
+// A fast profile for automated tests: short window, small counts.
 export const QUICK_PROFILE: RunnerProfile = {
   warmupFrames: 3,
   calibrateTargetMs: 6,
-  measureFrames: 8,
+  measureMs: 150,
   minCount: 8,
   maxCount: 1 << 13,
 };
@@ -121,36 +134,38 @@ async function runOne(
   await ctx.device.queue.onSubmittedWorkDone();
 
   report('measure');
-  const cpuSamples: number[] = []; // encode + submit only (the WebGPU-impl cost)
-  const totalSamples: number[] = []; // encode + submit + GPU completion
+  // Keep up to IN_FLIGHT frames in flight: encode + submit without waiting, and
+  // only block when we are that many frames ahead (backpressure). No per-frame
+  // drain and no rAF vsync cap, so we measure sustained throughput, not the cost
+  // of starting and stopping from an idle GPU each frame.
+  const encodeSamples: number[] = []; // per-frame CPU encode+submit time
+  const inFlight: Array<Promise<unknown>> = [];
   let frames = 0;
-  for (let i = 0; i < profile.measureFrames; i++) {
-    const t0 = performance.now();
+  const tStart = performance.now();
+  const deadline = tStart + profile.measureMs;
+  do {
+    if (inFlight.length >= IN_FLIGHT) {
+      await inFlight.shift(); // wait for the oldest frame's GPU work to finish
+    }
+    const e0 = performance.now();
     await bench.runFrame(count);
-    const tEncode = performance.now();
-    // Drain the queue so GPU work cannot back up across frames, and so the GPU's
-    // own completion time becomes observable.
-    await ctx.device.queue.onSubmittedWorkDone();
-    const tDone = performance.now();
-    cpuSamples.push(tEncode - t0);
-    totalSamples.push(tDone - t0);
+    encodeSamples.push(performance.now() - e0);
+    inFlight.push(ctx.device.queue.onSubmittedWorkDone());
     frames++;
-    await nextFrame();
-  }
+  } while (performance.now() < deadline && frames < MAX_MEASURE_FRAMES);
+  // Drain the last few in-flight frames so the window includes their completion.
+  await Promise.all(inFlight);
+  const wallMs = performance.now() - tStart;
 
-  const cpuMsMedian = median(cpuSamples);
-  const totalMsMedian = median(totalSamples);
-  // GPU completion time beyond CPU encode time, clamped at zero.
-  const gpuMsMedian = Math.max(0, totalMsMedian - cpuMsMedian);
-  // Use the sum of measured CPU encode time (excludes the rAF idle wait between
-  // frames) as the basis for units/second, so the rate reflects WebGPU CPU cost.
-  const cpuTotalMs = cpuSamples.reduce((a, b) => a + b, 0);
-  const unitsPerSecond =
-    cpuTotalMs > 0 ? (count * frames * 1000) / cpuTotalMs : 0;
-  // Flag as GPU-bound when GPU completion dominates the frame: the result then
-  // reflects the GPU more than the WebGPU call path. An absolute floor keeps
-  // sub-millisecond noise from tripping the flag.
-  const gpuBound = gpuMsMedian > cpuMsMedian * 2 && gpuMsMedian > 2;
+  const cpuMsMedian = median(encodeSamples);
+  // Sustained units/second over the full window with the pipe kept full.
+  const unitsPerSecond = wallMs > 0 ? (count * frames * 1000) / wallMs : 0;
+  // Fraction of the window the CPU spent encoding rather than blocked on the
+  // pipe. If the CPU is mostly idle, the GPU/driver -- not WebGPU's call path --
+  // is the bottleneck, so the result is GPU-bound.
+  const encodeTotalMs = encodeSamples.reduce((a, b) => a + b, 0);
+  const cpuBusyFraction = wallMs > 0 ? Math.min(1, encodeTotalMs / wallMs) : 0;
+  const gpuBound = cpuBusyFraction < 0.5;
 
   const err = await ctx.device.popErrorScope();
   if (err) console.warn(`[${bench.id}] validation error:`, err.message);
@@ -165,7 +180,7 @@ async function runOne(
     count,
     frames,
     cpuMsMedian,
-    gpuMsMedian,
+    cpuBusyFraction,
     unitsPerSecond,
     gpuBound,
     score: scoreFor(bench.id, unitsPerSecond),

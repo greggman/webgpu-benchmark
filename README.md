@@ -33,10 +33,21 @@ measure**:
 
 - **warmup** runs a few frames so the implementation can lazily create pipelines,
   buffers, and bind groups (those timings are discarded).
-- **calibrate** picks a per-frame operation `count` targeting a modest flushed
-  frame time, so the GPU stays under-utilized and the queue can't back up.
-- **measure** records the CPU time to encode + submit the work (the WebGPU-impl
-  cost) and reports operations/second.
+- **calibrate** picks a per-frame operation `count` sizing each submitted frame
+  to a modest amount of work.
+- **measure** keeps the GPU pipe full — the standard *frames-in-flight* pattern
+  (up to 3 frames in flight, blocking only when that far ahead) — and reports the
+  operations/second sustained over a fixed wall-clock window.
+
+> **Why frames-in-flight and not "submit one frame, wait for it to finish"?**
+> Draining the queue every frame measures *start + stop* latency, not throughput:
+> it runs each frame from an idle GPU and never lets the implementation pipeline
+> submissions the way a real engine does. It would also penalize an implementation
+> that is fast under constant load but has higher per-submit latency. Keeping the
+> pipe full measures sustained run speed. Each result also reports **CPU busy %**
+> (how much of the window the CPU spent encoding vs. blocked on backpressure); a
+> low value trips the **GPU-bound** flag, meaning the GPU/driver — not WebGPU's
+> call path — was the bottleneck.
 
 Each benchmark's operations/second is normalized against a baked-in reference
 baseline (`src/ui/score.ts`) so a score near **1000 matches the reference machine
@@ -50,7 +61,7 @@ npm install
 npm run dev      # build + watch + serve on a free port
 npm run build    # production build into dist/
 npm run serve    # serve an existing dist/
-npm test         # Puppeteer smoke test (a few frames per benchmark)
+npm test         # Puppeteer smoke test (short measurement window per benchmark)
 npm run typecheck
 ```
 

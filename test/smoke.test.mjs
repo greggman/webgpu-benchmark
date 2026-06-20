@@ -48,7 +48,13 @@ test('every benchmark runs and produces a finite positive score', async () => {
     assert.ok(Number.isFinite(r.score) && r.score > 0, `${id}: score finite & positive (got ${r.score})`);
     assert.ok(Number.isFinite(r.unitsPerSecond) && r.unitsPerSecond > 0, `${id}: throughput positive`);
     assert.ok(r.count >= 1, `${id}: calibrated a count`);
-    assert.ok(Number.isFinite(r.gpuMsMedian) && r.gpuMsMedian >= 0, `${id}: gpu time finite & non-negative`);
+    assert.ok(r.frames >= 1, `${id}: ran at least one frame`);
+    assert.ok(
+      Number.isFinite(r.cpuBusyFraction) &&
+        r.cpuBusyFraction >= 0 &&
+        r.cpuBusyFraction <= 1,
+      `${id}: cpuBusyFraction in [0,1] (got ${r.cpuBusyFraction})`,
+    );
     assert.equal(typeof r.gpuBound, 'boolean', `${id}: gpuBound is a boolean`);
   }
 });

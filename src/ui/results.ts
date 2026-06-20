@@ -16,7 +16,7 @@ function row(r: BenchResult): HTMLTableRowElement {
     <td class="num">${fmtInt(r.unitsPerSecond)} ${r.unit}/s</td>
     <td class="num">${fmtInt(r.count)}</td>
     <td class="num">${r.cpuMsMedian.toFixed(2)} ms</td>
-    <td class="num">${r.gpuMsMedian === undefined ? '—' : `${r.gpuMsMedian.toFixed(2)} ms`}</td>`;
+    <td class="num">${Math.round(r.cpuBusyFraction * 100)}%</td>`;
   return tr;
 }
 
@@ -44,7 +44,7 @@ export function renderResults(container: HTMLElement, record: RunRecord): void {
       <th class="num">Throughput</th>
       <th class="num">Count/frame</th>
       <th class="num">CPU/frame</th>
-      <th class="num">GPU/frame</th>
+      <th class="num">CPU busy</th>
     </tr></thead>`;
   const tbody = document.createElement('tbody');
   for (const r of record.results) tbody.append(row(r));

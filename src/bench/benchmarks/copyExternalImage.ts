@@ -4,8 +4,8 @@
 import type {Benchmark, BenchContext} from '../types.js';
 import {encodeAnimatedClear, nowSeconds} from './shared.js';
 
-const IMG = 64; // source image size
-const DST = 256; // destination texture size (copies tile into it)
+const IMG = 512; // source image size
+const DST = 1024; // destination texture size (copies tile into it)
 
 export const copyExternalImageBench: Benchmark = createBench();
 
