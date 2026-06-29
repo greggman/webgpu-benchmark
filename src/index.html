@@ -17,9 +17,19 @@
         WebGPU is not available in this browser.
         <span id="unsupported-reason"></span>
       </div>
-      <canvas id="view" width="640" height="360"></canvas>
       <section id="panel"></section>
     </main>
+
+    <!-- Shown only while a run is in progress: the live canvas + progress. -->
+    <div id="overlay" hidden>
+      <div class="overlay-card">
+        <h2 id="overlay-title">Running benchmarks…</h2>
+        <canvas id="view" width="640" height="360"></canvas>
+        <p id="overlay-status" class="status"></p>
+        <div class="progress"><div id="progress-bar"></div></div>
+      </div>
+    </div>
+
     <script type="module" src="./main.js"></script>
   </body>
 </html>

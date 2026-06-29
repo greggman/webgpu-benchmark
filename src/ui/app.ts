@@ -27,6 +27,15 @@ const PHASE_LABEL: Record<ProgressEvent['phase'], string> = {
   done: 'done',
 };
 
+// How far through a single benchmark each phase is, for the progress bar.
+const PHASE_FRACTION: Record<ProgressEvent['phase'], number> = {
+  init: 0,
+  warmup: 0.15,
+  calibrate: 0.35,
+  measure: 0.6,
+  done: 1,
+};
+
 export function createApp(root: HTMLElement, deps: AppDeps): void {
   root.replaceChildren();
 
@@ -103,8 +112,18 @@ export function createApp(root: HTMLElement, deps: AppDeps): void {
     checkboxes.forEach(cb => (cb.checked = false)),
   );
 
+  // The run overlay (canvas + live progress) only appears while a run is active.
+  const overlay = document.getElementById('overlay')!;
+  const overlayStatus = document.getElementById('overlay-status')!;
+  const progressBar = document.getElementById('progress-bar')!;
+
+  const setProgress = (fraction: number) => {
+    progressBar.style.width = `${Math.max(0, Math.min(1, fraction)) * 100}%`;
+  };
+
   const onProgress = (e: ProgressEvent) => {
-    status.textContent = `(${e.index + 1}/${e.total}) ${e.benchName} — ${PHASE_LABEL[e.phase]}…`;
+    overlayStatus.textContent = `(${e.index + 1}/${e.total}) ${e.benchName} — ${PHASE_LABEL[e.phase]}…`;
+    setProgress((e.index + PHASE_FRACTION[e.phase]) / e.total);
   };
 
   runBtn.addEventListener('click', async () => {
@@ -115,6 +134,9 @@ export function createApp(root: HTMLElement, deps: AppDeps): void {
     }
     runBtn.disabled = saveBtn.disabled = true;
     resultsEl.replaceChildren();
+    setProgress(0);
+    overlayStatus.textContent = 'Starting…';
+    overlay.hidden = false;
     try {
       const results = await runBenchmarks(
         selected,
@@ -130,6 +152,7 @@ export function createApp(root: HTMLElement, deps: AppDeps): void {
     } catch (err) {
       status.textContent = `Run failed: ${err instanceof Error ? err.message : String(err)}`;
     } finally {
+      overlay.hidden = true;
       runBtn.disabled = false;
       saveBtn.disabled = lastRecord === null;
     }

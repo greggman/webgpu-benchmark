@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-20T22:35:36.598Z",
+  "generatedAt": "2026-06-22T02:14:54.316Z",
   "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36",
   "adapter": {
     "vendor": "apple",
@@ -8,23 +8,23 @@
     "description": ""
   },
   "unitsPerSecond": {
-    "copyExternalImage": 13801,
-    "writeBufferSmall": 2651298,
-    "writeBufferBig": 8440,
-    "mapAsyncWrite": 5815,
-    "mapAsyncRead": 3050,
-    "writeTextureSmall": 375831,
-    "writeTextureBig": 38322,
-    "draw": 12152754,
-    "drawIndexed": 11744948,
-    "drawIndirect": 7239508,
-    "drawIndexedIndirect": 6688874,
-    "renderBundle": 67632,
-    "dispatch": 476239,
-    "interleavedPasses": 15420,
-    "createBindGroup": 1102610,
-    "setBindGroupDynamic": 3466107,
-    "setPipelineSwitch": 4080009,
-    "renderPasses": 22449
+    "copyExternalImage": 14496,
+    "writeBufferSmall": 2715690,
+    "writeBufferBig": 10730,
+    "mapAsyncWrite": 5290,
+    "mapAsyncRead": 2957,
+    "writeTextureSmall": 365387,
+    "writeTextureBig": 43649,
+    "draw": 11969060,
+    "drawIndexed": 11328570,
+    "drawIndirect": 6693619,
+    "drawIndexedIndirect": 6551762,
+    "renderBundle": 65420,
+    "dispatch": 468581,
+    "interleavedPasses": 15361,
+    "createBindGroup": 1062998,
+    "setBindGroupDynamic": 3556896,
+    "setPipelineSwitch": 3589391,
+    "renderPasses": 21057
   }
 }

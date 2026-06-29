@@ -24,7 +24,15 @@ const MAX_MEASURE_FRAMES = 200_000;
 
 export interface RunnerProfile {
   warmupFrames: number;
-  calibrateTargetMs: number; // flushed frame time we size `count` against
+  // Calibration grows `count` until CPU encode time reaches encodeTargetMs (this
+  // scales with the work in every browser), bounded by flushedCeilingMs so that
+  // GPU/driver-heavy benches (uploads, image copies) whose encode cost is ~0 do
+  // not balloon. Sizing on encode time -- not flushed time -- is essential
+  // because `onSubmittedWorkDone` latency varies wildly across implementations
+  // (sub-ms in Chrome, ~frame-cadence in Firefox), so flushed time alone would
+  // mis-size `count` to the minimum on slow-completion browsers.
+  encodeTargetMs: number;
+  flushedCeilingMs: number;
   // Measurement is split into several short windows; we take the median rate
   // across them (robust to GC/scheduler stalls) and discard the first as settle.
   measureWindows: number;
@@ -35,7 +43,8 @@ export interface RunnerProfile {
 
 export const FULL_PROFILE: RunnerProfile = {
   warmupFrames: 10,
-  calibrateTargetMs: 12,
+  encodeTargetMs: 8,
+  flushedCeilingMs: 40,
   measureWindows: 7, // median of 6 after dropping the first
   measureWindowMs: 220,
   minCount: 16,
@@ -45,7 +54,8 @@ export const FULL_PROFILE: RunnerProfile = {
 // A fast profile for automated tests: fewer/shorter windows, small counts.
 export const QUICK_PROFILE: RunnerProfile = {
   warmupFrames: 3,
-  calibrateTargetMs: 6,
+  encodeTargetMs: 3,
+  flushedCeilingMs: 20,
   measureWindows: 4, // median of 3 after dropping the first
   measureWindowMs: 50,
   minCount: 8,
@@ -103,41 +113,62 @@ async function measureWindow(
   return {rate, frames, encode};
 }
 
-// Run one frame and wait for the GPU to finish it, returning the full wall time
-// (encode + submit + GPU completion). Used during calibration so that benchmarks
-// whose CPU cost is tiny but whose GPU/driver cost is not (queue uploads, image
-// copies) cannot run the count away and flood the queue.
-async function timedFlushedFrame(
+interface FrameTiming {
+  encodeMs: number; // CPU time to encode + submit
+  flushedMs: number; // encode + GPU completion (onSubmittedWorkDone)
+}
+
+// Run one frame and measure both the CPU encode time and the full flushed time.
+// One frame yields both: encode = t1-t0, flushed = t2-t0.
+async function timeFrame(
   bench: Benchmark,
   count: number,
   device: GPUDevice,
-): Promise<number> {
+): Promise<FrameTiming> {
   const t0 = performance.now();
   await bench.runFrame(count);
+  const t1 = performance.now();
   await device.queue.onSubmittedWorkDone();
-  return performance.now() - t0;
+  const t2 = performance.now();
+  return {encodeMs: t1 - t0, flushedMs: t2 - t0};
 }
 
-// Find a per-frame count whose flushed frame time is near the target. Growing on
-// flushed time keeps the GPU from being the bottleneck and bounds the queue.
+// Size `count` by CPU encode time (browser-agnostic, scales with the work),
+// bounded by a flushed-time ceiling for GPU/driver-heavy benches whose encode
+// cost is ~0. Grow by doubling while both are under their limits, then scale to
+// whichever bound binds first.
 async function calibrate(
   bench: Benchmark,
   profile: RunnerProfile,
   device: GPUDevice,
 ): Promise<number> {
   let count = profile.minCount;
-  let ms = await timedFlushedFrame(bench, count, device);
-  while (ms < profile.calibrateTargetMs && count < profile.maxCount) {
+  let t = await timeFrame(bench, count, device);
+  while (
+    t.encodeMs < profile.encodeTargetMs &&
+    t.flushedMs < profile.flushedCeilingMs &&
+    count < profile.maxCount
+  ) {
     count = Math.min(count * 2, profile.maxCount);
-    const a = await timedFlushedFrame(bench, count, device);
-    const b = await timedFlushedFrame(bench, count, device);
-    ms = Math.min(a, b);
+    const a = await timeFrame(bench, count, device);
+    const b = await timeFrame(bench, count, device);
+    t = {
+      encodeMs: Math.min(a.encodeMs, b.encodeMs),
+      flushedMs: Math.min(a.flushedMs, b.flushedMs),
+    };
     await nextFrame();
   }
-  // Scale to land near the target without overshooting.
-  if (ms > 0) {
-    const scaled = Math.round((count * profile.calibrateTargetMs) / ms);
-    count = Math.max(profile.minCount, Math.min(profile.maxCount, scaled));
+  // Scale toward whichever limit is closest (smallest allowed multiple).
+  const byEncode =
+    t.encodeMs > 0 ? profile.encodeTargetMs / t.encodeMs : Infinity;
+  const byFlushed =
+    t.flushedMs > 0 ? profile.flushedCeilingMs / t.flushedMs : Infinity;
+  const scale = Math.min(byEncode, byFlushed);
+  if (Number.isFinite(scale) && scale > 0) {
+    count = Math.max(
+      profile.minCount,
+      Math.min(profile.maxCount, Math.round(count * scale)),
+    );
   }
   return count;
 }

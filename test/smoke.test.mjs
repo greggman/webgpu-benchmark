@@ -345,6 +345,50 @@ test('a run can be downloaded from history', async () => {
   );
 });
 
+test('the run overlay shows progress and hides when done', async () => {
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({waitUntil: 'load'});
+  await page.waitForFunction('window.__ready === true', {timeout: 20000});
+
+  // Overlay starts hidden.
+  assert.equal(
+    await page.$eval('#overlay', el => el.hidden),
+    true,
+    'overlay hidden before a run',
+  );
+
+  // Select just one benchmark (fast) and start the run.
+  await page.evaluate(() => {
+    [...document.querySelectorAll('button')]
+      .find(b => b.textContent === 'Select none')
+      .click();
+    document.getElementById('bench-draw').checked = true;
+    [...document.querySelectorAll('button')]
+      .find(b => b.textContent === 'Run selected')
+      .click();
+  });
+
+  // Overlay appears with a status line...
+  await page.waitForFunction(() => !document.getElementById('overlay').hidden, {
+    timeout: 5000,
+  });
+  const statusText = await page.$eval('#overlay-status', el => el.textContent);
+  assert.ok(statusText.length > 0, 'overlay shows a status line');
+
+  // ...the progress bar advances past 0...
+  await page.waitForFunction(
+    () => parseFloat(document.getElementById('progress-bar').style.width) > 0,
+    {timeout: 15000},
+  );
+
+  // ...and the overlay hides when the run finishes, leaving results behind.
+  await page.waitForFunction(() => document.getElementById('overlay').hidden, {
+    timeout: 30000,
+  });
+  const overall = await page.$eval('.overall', el => el.textContent);
+  assert.match(overall, /Overall score/, `results rendered (got: ${overall})`);
+});
+
 test('no page errors were raised during the run', () => {
   assert.deepEqual(pageErrors, [], `page errors:\n${pageErrors.join('\n')}`);
 });

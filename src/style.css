@@ -59,6 +59,47 @@ canvas {
   display: block;
 }
 
+/* Run overlay: a modal that covers the page so the live canvas + progress stay
+   centered in view (no scrolling) while a run is active. */
+#overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.6);
+}
+#overlay[hidden] { display: none; }
+
+.overlay-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  width: min(680px, 100%);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+.overlay-card h2 { margin: 0 0 0.75rem; font-size: 1.1rem; }
+.overlay-card canvas { max-width: 100%; }
+.overlay-card .status { margin: 0.75rem 0 0.5rem; min-height: 1.2em; }
+
+.progress {
+  height: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+#progress-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.2s ease;
+}
+
 #unsupported {
   background: var(--error-bg);
   border: 1px solid var(--bad);
